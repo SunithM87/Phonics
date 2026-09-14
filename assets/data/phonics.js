@@ -261,15 +261,26 @@ function wordsUpTo(n) {
 }
 
 /* Games want a decent spread but not the whole history — mostly the current
- * level, topped up from earlier levels so a level-4 board isn't 100% blends. */
-function gameWords(n, count) {
+ * level, topped up from earlier levels so a level-4 board isn't 100% blends.
+ *
+ * This MUST be deterministic in (n, count, seed, minLen) and nothing else.
+ * Both the reader portal and the child's screen build their own board from
+ * the shared state independently, so any randomness that isn't derived from
+ * the seed puts different words on the two screens — and reshuffles the
+ * board out from under an in-progress game on every unrelated re-render.
+ * That is exactly what an earlier Math.random() shuffle in here did.
+ * tools/check-determinism.js guards this.
+ */
+function gameWords(n, count, seed, minLen) {
+  const sd = Number(seed) || 0;
   const current = LEVEL_WORDS[Number(n)] || [];
   const earlier = wordsUpTo(Number(n) - 1);
-  const pool = shuffleArr(current).concat(shuffleArr(earlier));
+  const pool = seededShuffle(current, sd).concat(seededShuffle(earlier, sd + 977));
   const seen = new Set();
   const out = [];
   for (const w of pool) {
     if (seen.has(w)) continue;
+    if (minLen && w.length < minLen) continue;
     seen.add(w);
     out.push(w);
     if (out.length >= (count || 12)) break;
@@ -277,11 +288,16 @@ function gameWords(n, count) {
   return out;
 }
 
-function shuffleArr(a) {
-  const arr = a.slice();
+/* Fisher-Yates driven by a small deterministic LCG rather than Math.random,
+ * so the same seed always gives the same order in every browser. */
+function seededShuffle(list, seed) {
+  const arr = list.slice();
+  let x = ((Number(seed) || 0) + 1) * 9301 + 49297;
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    x = (x * 9301 + 49297) % 233280;
+    const j = x % (i + 1);
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
+

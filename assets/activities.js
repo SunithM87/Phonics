@@ -69,10 +69,16 @@ const flashcards = {
   },
   renderSounds(host, mode, s) {
     const sounds = soundsUpTo(s.level);
+    /* Both screens must derive what to show from exactly the same validated
+     * values. Validating the sound on one screen but not the other is how
+     * the two end up disagreeing — e.g. dropping the level mid-session used
+     * to clear the reader's panel while the child's screen kept showing a
+     * word from the level you just left. */
     const sel = s.fc.sound && sounds.includes(s.fc.sound) ? s.fc.sound : null;
+    const word = sel && (SOUND_WORDS[sel] || []).includes(s.fc.word) ? s.fc.word : null;
 
     if (mode === "student") {
-      if (s.fc.word) host.appendChild(bigWord(s.fc.word));
+      if (word) host.appendChild(bigWord(word));
       else if (sel) host.appendChild(bigWord(sel, "grapheme"));
       else host.appendChild(emptyMsg("Ready when you are!"));
       return;
@@ -87,9 +93,9 @@ const flashcards = {
       const words = (SOUND_WORDS[sel] || []);
       panel.appendChild(el("div", { class: "chips" }, words.map((w) =>
         el("button", {
-          class: "chip" + (s.fc.word === w ? " active" : ""),
+          class: "chip" + (word === w ? " active" : ""),
           text: w,
-          onclick: () => saveSub("fc", { word: s.fc.word === w ? null : w }),
+          onclick: () => saveSub("fc", { word: word === w ? null : w }),
         })
       )));
       panel.appendChild(assessRow("sounds", sel, "He read these"));
@@ -331,7 +337,7 @@ const threeinarow = {
   ],
   render(host, mode) {
     const s = loadState();
-    const words = seededPick(gameWords(s.level, 30), 9, s.tir.round);
+    const words = gameWords(s.level, 9, s.tir.round);
     const marks = s.tir.marks || [];
     let win = null;
     for (const [a, b, c] of LINES) if (marks[a] && marks[a] === marks[b] && marks[a] === marks[c]) win = { who: marks[a], line: [a, b, c] };
@@ -412,8 +418,7 @@ const mysteryword = {
     }
 
     if (!secret) {
-      const pool = gameWords(s.level, 40).filter((w) => w.length >= 3);
-      const choices = seededPick(pool, 8, s.myst.seed || 0);
+      const choices = gameWords(s.level, 8, 5000 + (s.myst.seed || 0), 3);
       host.appendChild(el("div", { class: "panel" }, [
         el("p", { class: "hint", text: "Pick a secret word (he can't see this list on his screen):" }),
         el("div", { class: "chips" }, choices.map((w) =>

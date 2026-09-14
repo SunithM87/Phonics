@@ -329,7 +329,14 @@ a { color: inherit; }
 
 /* ---------------------------- 3 in a row ---------------------------- */
 
-.tirgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 540px; margin: 0 auto; }
+/* A definite width, not max-width. As a flex item with `margin: 0 auto`,
+ * max-width alone lets the grid shrink-wrap to its content instead of
+ * filling up to the cap — which made the board render small and off-centre
+ * on the child's screen. */
+.tirgrid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  width: min(540px, 100%); margin-inline: auto;
+}
 .tircell {
   position: relative; aspect-ratio: 1.25; border: none; border-radius: var(--radius);
   background: #a9c8f0; color: #17325c; cursor: pointer;

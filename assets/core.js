@@ -153,19 +153,6 @@ function esc(s) {
   return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-/* Stable pseudo-random pick so a game board stays put across re-renders and
- * is identical on both screens: seeded by round number, not Math.random. */
-function seededPick(list, count, seed) {
-  const out = [];
-  const pool = list.slice();
-  let x = (seed + 1) * 9301 + 49297;
-  while (out.length < count && pool.length) {
-    x = (x * 9301 + 49297) % 233280;
-    out.push(pool.splice(x % pool.length, 1)[0]);
-  }
-  return out;
-}
-
 const STICKERS = ["⭐", "🏆", "🎉", "🌟", "🚀", "🦖", "🐙", "🍩", "⚽", "🌈"];
 
 function sendSticker(emoji) {

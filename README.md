@@ -35,8 +35,8 @@ them, which for a four-year-old is most of the appeal.
 
 Every book is banded, and **every word is checked to be decodable at that
 band** — not by eye, but by `tools/check-decodable.js`, which segments each
-word into graphemes and fails the build if one can't be read with the sounds
-taught by that point. Run it with `node tools/check-decodable.js`.
+word into graphemes and fails if one can't be read with the sounds taught by
+that point.
 
 Tricky words are marked in the data and shown in blue on the page, so you
 know at a glance which words to just tell him rather than make him sound out.
@@ -167,8 +167,24 @@ assets/style.css                    everything visual
 assets/fonts/                       Andika (SIL OFL)
 server/server.js                    static server + sync
 tools/check-decodable.js            validates every story word against its band
+tools/check-determinism.js          guards that both screens compute the same thing
 deploy/docker-compose.yml           NAS deployment
 ```
+
+---
+
+## Checks
+
+```
+node tools/check-decodable.js      every story word readable at its band
+node tools/check-determinism.js    game boards identical on both screens
+```
+
+The second one exists because of a real bug: the word boards were shuffled
+with `Math.random()`, so the reader portal and the child's screen dealt
+different words from the same state — and the board reshuffled mid-game on
+any unrelated re-render. Anything both screens work out for themselves has
+to be a pure function of the shared state, and that check enforces it.
 
 ---
 
