@@ -1,27 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Reading time!</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>" />
-<link rel="stylesheet" href="assets/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>"/>
+<link rel="stylesheet" href="assets/style.css"/>
 </head>
-<body class="kid">
-  <div class="kid-header">
-    <button class="gear" id="gear-btn" title="Grown-up: back to Coach panel">⚙️</button>
-    <span class="mode-badge" id="mode-badge"></span>
-    <span class="sync-pill" id="sync-status"></span>
-    <span class="stars" id="stars-display">⭐</span>
+<body class="student">
+  <div class="stu-bar">
+    <span class="stu-activity" id="stu-activity"></span>
+    <button class="stu-exit" id="stu-exit" title="Grown-ups only">⚙</button>
   </div>
+  <main class="stu-stage" id="stage"></main>
+  <div class="stickerpop" id="stickerpop" hidden></div>
 
-  <div class="stage" id="stage"></div>
-
-  <div class="kid-controls" id="controls"></div>
-
-  <script src="assets/data.js"></script>
-  <script src="assets/app.js"></script>
-  <script src="assets/games.js"></script>
+  <script src="assets/data/phonics.js"></script>
+  <script src="assets/data/art.js"></script>
+  <script src="assets/data/stories.js"></script>
+  <script src="assets/core.js"></script>
+  <script src="assets/activities.js"></script>
   <script src="assets/play.js"></script>
 </body>
 </html>

@@ -1,73 +1,44 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>The Reading Den</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>" />
-<link rel="stylesheet" href="assets/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>"/>
+<link rel="stylesheet" href="assets/style.css"/>
 </head>
-<body>
-  <div class="wrap">
-    <div class="top-row">
-      <div class="brand"><span class="logo">🦉</span> The Reading Den</div>
-      <span class="pill">Little Wandle-aligned · Phases 2–5</span>
-    </div>
+<body class="landing">
+<div class="land-wrap">
+  <header class="land-head">
+    <span class="brand-mark big" aria-hidden="true">📖</span>
+    <h1>The Reading Den</h1>
+    <p class="land-sub">A two-screen reading session for one grown-up and one child, matched to the Little&nbsp;Wandle phonics progression.</p>
+  </header>
 
-    <div class="card">
-      <h1>A home reading corner, just for you two.</h1>
-      <p class="lead">
-        A grown-up "coach" screen for picking sounds, words, and stories at the
-        right level, and a simple, distraction-free screen for him to read from —
-        the same split-screen idea as a school reading platform, built from
-        scratch for home, and matched to the phonics scheme his school uses.
-      </p>
-      <div class="btn-row">
-        <a class="btn" href="coach.html">🧑‍🏫 I'm the grown-up (Coach view)</a>
-        <a class="btn secondary" href="play.html">🧒 Go straight to Kid view</a>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="card">
-        <h2>How it works</h2>
-        <p>
-          Open <strong>Coach view</strong> first. Tick off which sounds and
-          tricky words his school has already taught, choose today's
-          activity, then hit <em>Start</em> to switch this screen into
-          Kid view — or open Kid view on a second device/tab and it'll follow
-          along automatically.
-        </p>
-      </div>
-      <div class="card">
-        <h2>Five activities, three games</h2>
-        <p>
-          Sound Cards · Build &amp; Blend · Tricky Words · Story Time ·
-          Alien Word Check for structured practice, plus Three in a Row,
-          Match Pairs, and Word Bingo for when reading should feel like
-          playing.
-        </p>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Synced across every screen in the house</h2>
-      <p class="lead" style="margin-top:0;">
-        Running this through the included sync server (see the README —
-        it's the setup for hosting it on a NAS) means Coach and Kid views
-        stay live-synced across <em>any</em> devices on the network, not
-        just two tabs of one browser. Look for the 🟢/🟡 pill on either
-        screen to see whether that's active.
-      </p>
-    </div>
-
-    <footer class="tiny">
-      An independent, original project — not affiliated with, endorsed by,
-      or a copy of Little Wandle, Wandle Learning Trust, or any commercial
-      reading platform. Phase content cross-checked against publicly
-      published Little Wandle Letters and Sounds Revised overviews,
-      September 2026 — always defer to what actually comes home from school.
-    </footer>
+  <div class="land-cards">
+    <a class="land-card primary" href="coach.html">
+      <span class="lc-icon">🧑‍🏫</span>
+      <strong>Reader portal</strong>
+      <span>Your screen. Pick the level, run the activities, keep the record. Start here.</span>
+    </a>
+    <a class="land-card" href="play.html">
+      <span class="lc-icon">🧒</span>
+      <strong>His screen</strong>
+      <span>Just the story or game — no menus, nothing to wander off into.</span>
+    </a>
   </div>
+
+  <section class="land-grid">
+    <div><h2>Seven activities</h2><p>Flashcards, Stories, Word Sort, 3&nbsp;in&nbsp;a&nbsp;Row, Mystery Word, Word Wheel and a Whiteboard — the same shape of session a school reading volunteer runs.</p></div>
+    <div><h2>Eleven books</h2><p>Proper little stories with covers, characters and an ending — every word checked so it only uses sounds he's actually been taught.</p></div>
+    <div><h2>Two screens, live</h2><p>Run the portal on your laptop and his screen on a tablet. Click a word and it highlights on his page.</p></div>
+  </section>
+
+  <footer class="land-foot">
+    Independent and original — not affiliated with, endorsed by, or a copy of Little&nbsp;Wandle, Wandle Learning Trust, or Chapter&nbsp;One.
+    Phonics progression cross-checked against the published Little&nbsp;Wandle Reception and Year&nbsp;1 overviews, September 2026.
+    Whatever comes home in his book bag beats this app.
+  </footer>
+</div>
 </body>
 </html>

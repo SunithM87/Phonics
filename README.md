@@ -1,187 +1,179 @@
-# The Reading Den 🦉
+# The Reading Den 📖
 
-A small, offline, two-screen reading practice app for one grown-up and one
-child — built for home use, and matched to the **Little Wandle Letters and
-Sounds Revised** phonics scheme (Phases 2–5).
+A two-screen reading session for one grown-up and one child at home: a
+**reader portal** with the controls, and a **child's screen** with just the
+story or game on it. Built around the Little Wandle Letters and Sounds
+Revised progression, because that's the scheme the school uses.
 
-## Why this exists, and what it isn't
+No build step, no accounts, no internet needed once it's on the machine.
 
-This was built after a request to "copy" chapterone.org for home use. Worth
-being upfront about what actually happened instead, and why:
+---
 
-- **This is not a copy of chapterone.org.** There's no access to its source
-  code from here, and even with a login, reproducing a charity/commercial
-  platform's branding, stories, and content wouldn't be appropriate — that's
-  their intellectual property, not something to clone. What *is* borrowed is
-  the underlying **idea**: a "coach" screen with controls, and a plain
-  "student" screen that only shows the activity. Everything else — the
-  content, the code, the design — is original.
-- **It's aligned to Little Wandle, not affiliated with it.** The phase
-  structure and word/sound groupings in `assets/data.js` were cross-checked
-  against publicly published Little Wandle Letters and Sounds Revised
-  overviews (September 2026), but this app is not produced, reviewed, or
-  endorsed by Wandle Learning Trust. Schools vary in exact weekly pacing —
-  **always defer to what actually comes home in the book bag.** Use the
-  checklist in the Coach panel to mark off what's really been taught, rather
-  than trusting the default phase groupings blindly.
-- **The three games are originals, not a chapterone.org clone either.**
-  Three in a Row, Match Pairs, and Word Bingo are about as generic a set of
-  game *formats* as exist — noughts-and-crosses, a memory/pairs game, and a
-  bingo card are standard across essentially every reading/phonics platform
-  and plenty that have nothing to do with reading. They're built fresh here,
-  with original code, art (just emoji) and content, tuned to this app's own
-  phonics data. There was no access to chapterone.org to compare against —
-  if its actual games look different from these, that's why.
+## What's in it
+
+**Seven activities**, reachable from the sidebar, the same shape of session a
+school reading volunteer runs:
+
+| | |
+|---|---|
+| **Flashcards** | Sound tiles and tricky words. Pick a sound, send an example word to his screen, mark ✓ / ✗. Tiles keep their colour, so the record builds up over sessions. |
+| **Stories** | Eleven illustrated decodable books — see below. |
+| **Word Sort** | Numbered words to sort into coloured bins by the sound they contain. He says "number four goes in the red box". |
+| **3 in a Row** | Noughts and crosses on a 3×3 grid of words. Read the word to claim the square. You against him — click once for ✕, twice for ○. |
+| **Mystery Word** | You pick a secret word, he guesses letters. Wrong guesses cost a star. Five stars and it's revealed. |
+| **Word Wheel** | A rime in the middle, onsets round the outside — turn it and he reads a whole rhyming family: cat, hat, mat, pat, rat, sat. |
+| **Whiteboard** | Type sounds or words, drag them around. Good for pulling a word apart and pushing it back together. |
+
+Plus **Send a Sticker** — pops a big emoji on his screen. Worth saving for
+something he found hard.
+
+### The stories
+
+Eleven proper little books, not practice sentences: a title, a cover, a cast,
+and a beginning/middle/end over five pages. Pip the pug turns up in two of
+them, which for a four-year-old is most of the appeal.
+
+Every book is banded, and **every word is checked to be decodable at that
+band** — not by eye, but by `tools/check-decodable.js`, which segments each
+word into graphemes and fails the build if one can't be read with the sounds
+taught by that point. Run it with `node tools/check-decodable.js`.
+
+Tricky words are marked in the data and shown in blue on the page, so you
+know at a glance which words to just tell him rather than make him sound out.
+Click any word on your screen and it highlights on his.
+
+Pictures are composed from an original SVG kit (`assets/data/art.js`) — one
+shared cast and prop set, so characters stay recognisable page to page.
+
+---
 
 ## Running it
 
-No build step, no install. Just open `index.html` in a browser — either by
-double-clicking the file, or (recommended, so localStorage behaves
-consistently) serving the folder locally:
+Open `index.html` in a browser. That's genuinely it — everything works from
+the local file, with the two screens syncing through the browser's own
+storage if you keep them in tabs of the same browser.
+
+For two *devices* (your laptop and his tablet), you need the sync server:
 
 ```
-python3 -m http.server 8000
-# then open http://localhost:8000
+cd server && npm install        # once — pulls one dependency, ws
+cd .. && PUBLIC_DIR="$PWD" STATE_FILE="$PWD/deploy/data/state.json" node server/server.js
+# then open http://<your-machine>:8080 on both devices
 ```
 
-## How the two screens work
+Or run it properly on a NAS — see below.
 
-- **`coach.html`** — pick the phase, tick off what's already been taught,
-  choose today's activity (Sound Cards, Build & Blend, Tricky Words, Story
-  Time, Alien Word Check, or one of the three games), and Practice vs Check
-  mode. Has a live preview of exactly what the kid screen is showing.
-- **`play.html`** — the plain screen for reading time. Big text, no menus, a
-  small ⚙️ in the corner (asks for confirmation) to get back to the coach
-  screen.
+Look for the pill at the top right of the portal: **● Synced to his screen**
+means both screens are live; **● This device only** means there's no server,
+which is still perfectly usable on one screen.
 
-## Cross-device sync
-
-State always lives in the browser's `localStorage` first — that's what
-makes two tabs of the *same* browser sync instantly with zero setup, and
-it's what lets the whole app still work with no server at all (just open
-`index.html`). Look for the 🟢/🟡 pill on either screen: 🟡 *This device
-only* means you're in that plain local mode.
-
-When you're running it through `server/server.js` (which the Docker/NAS
-setup below does automatically), the app also opens a WebSocket to that
-server, and everything — the live activity, the progress checklist, and
-any in-progress game — becomes one shared document kept in sync across
-*every* device watching it. The pill goes 🟢 *Synced*. This was built,
-and tested end to end (two independent browser profiles, standing in for
-two separate devices, watching the same tic-tac-toe game and seeing each
-other's and the robot's moves land live) before being written up here.
-
-There's deliberately no login and no accounts — it's one shared document
-for one family. That's exactly why it must stay off the open internet; see
-"Don't port-forward this" below.
+---
 
 ## Hosting it on a NAS
 
-UGOS (the UGREEN NAS OS) has no built-in "Web Station" the way Synology or
-QNAP do, so the way to serve this as a real always-on site — and the way to
-get the cross-device sync above — is a small Docker container. It's in this
-repo: `server/` is the sync server (Node + the `ws` package, nothing else),
-and `deploy/docker-compose.yml` builds and runs it.
+UGOS (the UGREEN NAS OS) has no built-in static-site host, so this runs as a
+small Docker container: `server/` is a tiny Node server (one dependency) that
+serves the site *and* keeps every screen in sync over a WebSocket.
+`deploy/docker-compose.yml` builds and runs it.
 
-Worth being precise about what was actually verified here, not just
-written: `server.js` itself was run directly and tested hard — two
-independent browser profiles standing in for two separate devices, live
-sync of activities, progress, and an in-progress tic-tac-toe game
-(including the robot's moves) between them, state surviving a server
-restart, and the app degrading gracefully with no server at all. The
-Docker *image build* specifically is standard, unremarkable Dockerfile
-(the same pattern the earlier nginx-based version used, which did build
-and run cleanly) — but the sandbox this was built in hit Docker Hub's
-anonymous pull rate limit partway through this session and the image
-build itself couldn't be completed here. It should build cleanly on your
-NAS's normal internet connection; if it doesn't, that's worth telling me.
+1. **Get the files onto the NAS** — easiest is to map it as a network drive
+   and copy the folder over.
+2. **App Center → Docker → Install** (current DXP / DH4300 Plus models
+   support it; the entry-level DH2300 doesn't).
+3. **Docker → Project**, point it at `deploy/docker-compose.yml`. Edit the two
+   paths under `volumes:` to the real absolute paths on your NAS — copy them
+   out of the Files app rather than guessing, the scheme varies by model.
+   If the Project UI won't handle the `build:` section, enable SSH
+   (Control Panel → Terminal) and run `docker compose up -d --build` once
+   from the `deploy` folder.
+4. Open `http://<nas-ip>:8080` on any device in the house.
 
-1. **Get the files onto the NAS.** Easiest: map the NAS as a network drive
-   (Finder → Connect to Server, or Windows → Map Network Drive) using its
-   SMB address, create a shared folder (e.g. `reading-den`), and copy this
-   whole repo folder into it. (A ZIP download from GitHub, uploaded and
-   extracted via the Files app, works too.)
-2. **Install Docker**, if it isn't already: UGOS Pro → App Center → search
-   "Docker" → Install. (Current DXP/DH4300 Plus models support it; older
-   entry-level models like the DH2300 don't.)
-3. Open the **Docker app → Project**, and point it at
-   `reading-den/deploy/docker-compose.yml` — or paste its contents in. Before
-   running it, edit the two paths under `volumes:` (replace `../` and
-   `./data`) with the actual absolute paths on your NAS, copied from the
-   **Files** app — don't guess them, the exact scheme varies by model. The
-   compose file itself has a worked example in its comments.
-   - If the Project UI doesn't support the `build:` section, enable SSH
-     (Control Panel → Terminal) and run `docker compose up -d --build` from
-     the `deploy` folder once — the Project view can manage it from there.
-4. Deploy. Visit `http://<your-nas-ip>:8080` from any device on your home
-   network — that URL now serves the site *and* keeps every device watching
-   it in sync live.
+**Two things worth knowing:**
 
-A couple of things worth knowing before you do this:
+- **Don't port-forward this.** There's no login and no accounts, by design —
+  it's one family's shared state. That's fine on your own LAN and a bad idea
+  on the open internet.
+- **His progress lives in `deploy/data/state.json`** on the NAS. It's the
+  record of which sounds and tricky words he's got. Worth including in
+  whatever you already back up.
 
-- **Don't port-forward this to the internet.** There is genuinely nothing
-  guarding the shared state now — no login, no per-user anything, by
-  design, since it's one family's data. That's a fine trade-off on your own
-  LAN and a bad one on the open internet. Keep it there. If your NAS has a
-  fixed/reserved local IP (worth setting in your router if it doesn't
-  already), the address won't change.
-- **His progress checklist and game state now live on the NAS**, in
-  `deploy/data/state.json` (created automatically). Worth including in
-  whatever you already back up, the same as any other file on the NAS —
-  it's the record of what he's learned.
+---
 
-## The games
+## Levels
 
-Three, chosen because they're near-universal phonics-practice formats
-rather than anything specific to one platform:
+Two separate level systems, which is how reading platforms actually do it,
+because they move independently:
 
-- **Three in a Row** — noughts and crosses against a (deliberately not
-  very smart) computer opponent. Tap a square, read the word you're shown,
-  confirm you got it, and it's yours.
-- **Match Pairs** — a memory game where each pair is the *same* word shown
-  two ways: as sound-buttons and as the whole word. Matching them means
-  reading both, not just remembering grid positions.
-- **Word Bingo** — call a word, find it on your board. Full house to win.
+**Activity Level 1–6** drives flashcards and games. It follows the published
+Little Wandle Reception and Year 1 programme — four new sounds a week — so
+Level 1 is Reception Autumn 1 (`s a t p` / `i n m d` / `g o c k` / `ck e u r`
+/ `h b f l`, tricky words *is, I, the*) and it builds from there. The order,
+the weekly grouping and the tricky-word lists were taken from the published
+Little Wandle programme overview and pacing document, and the tricky-word
+counts match the official lists exactly (22 / 9 / 18 / 34 for Phases 2–5).
 
-All three pull their words from whichever set is selected in the Coach
-panel (same content as Build & Blend), so they stay matched to wherever he
-actually is in the phonics scheme rather than being a separate pool of
-content to maintain. A set needs at least 3 words for a game to start —
-every set in `data.js` already qualifies.
+**Story Level** is a book-band colour — Pink, Red, Yellow, Blue.
 
-## Content structure
+> **An honest caveat on the band colours.** Book bands are near-universal in
+> UK schools, but they are **not** a Little Wandle thing. Little Wandle
+> labels books by *Phase and Set*, and Collins — who publish the official
+> Little Wandle readers — print "Phase 4 Set 2" on the back, not a colour.
+> Every phase→colour mapping out there is a school-made chart, and the ones
+> I checked disagree with each other by about a term. Pink≈Phase 2 and
+> Red≈Phase 3 are solid; above that it gets fuzzy (Yellow is only Phase 4
+> Set 1; Blue covers Phase 4 Set 2 *and* early Phase 5). Treat the colour as
+> a rough guide and go by what comes home in his book bag.
 
-`assets/data.js` holds everything: which letter-sounds (GPCs) belong to each
-phase and set, example/decodable words (broken into "sound buttons" — the
-segments a child blends), tricky words, short decodable sentences, and a
-bank of made-up "alien words" for pure-decoding practice (the same idea
-schools use in the Year 1 phonics screening check).
+---
 
-To extend it — add more words, sentences, or phases — everything follows
-the same shape; the comments at the top of the file explain the phase/set
-model.
+## Why it looks the way it does
+
+Two typefaces, deliberately:
+
+- **Andika** for everything *he* reads — words, letters, story text, game
+  tiles. It's SIL's typeface for early literacy: single-storey `a` and `g`,
+  unambiguous `l`/`I`/`1`. Those are the letterforms he's being taught to
+  write, which matters more at four than typographic elegance does. It's
+  self-hosted in `assets/fonts` (SIL Open Font Licence, included), so it
+  works offline and doesn't call out to Google.
+- **The system UI font** for everything *you* read, so the portal looks like
+  software rather than a nursery wall.
+
+No Comic Sans anywhere.
+
+---
 
 ## Project layout
 
 ```
-index.html, coach.html, play.html   the three pages
-assets/data.js                      phonics content (see above)
-assets/app.js                       state + the sync client (WebSocket)
-assets/games.js                     Three in a Row / Match Pairs / Bingo
-assets/coach.js, play.js            per-page UI logic
-assets/style.css                    shared styling
-server/server.js                    static file + WebSocket sync server
-deploy/docker-compose.yml           NAS deployment (see "Hosting it on a NAS")
+index.html, coach.html, play.html   landing / reader portal / child's screen
+assets/core.js                      state + WebSocket sync
+assets/activities.js                all seven activities (coach + student modes)
+assets/coach.js, play.js            the two page shells
+assets/data/phonics.js              levels, sounds, tricky words, game word pools
+assets/data/stories.js              the eleven books
+assets/data/art.js                  SVG scene kit for the illustrations
+assets/style.css                    everything visual
+assets/fonts/                       Andika (SIL OFL)
+server/server.js                    static server + sync
+tools/check-decodable.js            validates every story word against its band
+deploy/docker-compose.yml           NAS deployment
 ```
 
-## A couple of honest caveats
+---
 
-- No audio. Text-to-speech was deliberately left out: getting a computer
-  voice to say individual phonemes correctly and consistently is genuinely
-  hard to get right, and a wrong sound is worse than no sound for a child
-  learning to read. The grown-up's voice does the modelling — which is the
-  point of doing this together anyway.
-- The word lists are original examples chosen to be decodable with only the
-  sounds taught by that point in the scheme, hand-checked but not
-  exhaustively — if a word ever looks like it uses a sound he hasn't met
-  yet, trust your judgement over the app.
+## Honest caveats
+
+- **No audio.** A text-to-speech voice saying phonemes gets them wrong often
+  enough to actively teach the wrong thing. Your voice does the modelling —
+  which is the point of doing this together.
+- **Word Whirled and Storyboard** exist on the platform this borrows its
+  *shape* from, but weren't in the screenshots I worked from. Word Wheel here
+  is my own take on what a "word whirl" ought to be (onset-and-rime, which is
+  the standard version of that activity); there's no Storyboard at all.
+- **It's not a copy.** Not of Chapter One — I had screenshots of the layout,
+  never the code, and all the stories, art, words and code here are original.
+  Not affiliated with or endorsed by Little Wandle / Wandle Learning Trust
+  either; it just follows their published progression.
+- **School wins.** If anything here contradicts what's coming home in his
+  book bag, the school is right and this is wrong.
