@@ -109,6 +109,47 @@ end to end against a copy of the app at a path with a space in it.
 
 ---
 
+## Updating an existing install
+
+Most updates need **no Docker commands at all.** The site files are
+bind-mounted into the container, and the server reads them from disk on
+every request with `Cache-Control: no-cache` — so new HTML, CSS, JS, story
+or artwork changes are live the moment they land on the NAS. Copy the files
+over, refresh the browser, done. (Verified: a running server picks up both
+edited and brand-new files with no restart.)
+
+**Copy over the top of the existing folder — don't delete it first.**
+`deploy/data/` holds his progress and isn't in the download, so a
+copy-over-the-top merge leaves it alone. Deleting the folder and copying
+fresh throws away the record of every sound and tricky word he's got.
+
+Then, only if certain files changed:
+
+| What changed | What to do |
+|---|---|
+| Anything in `assets/`, any `.html`, stories, artwork | Nothing. Refresh the browser. |
+| `deploy/docker-compose.yml` (port, paths) | Recreate the container — `docker compose up -d` |
+| `server/server.js`, `server/package.json`, `server/Dockerfile` | Rebuild the image — `docker compose up -d --build` |
+
+Those last two over SSH (Control Panel → Terminal), noting the quotes —
+the path has a space in it:
+
+```
+cd "/volume1/Windows/Reading Den/deploy"
+docker compose up -d --build
+docker compose logs --tail 20
+```
+
+Or from the UGOS Docker app, stop the project and start it again; for a
+rebuild it needs to rebuild the image rather than just restart, which is
+what the SSH command above guarantees.
+
+If a page still looks stale after a refresh, hard-refresh it
+(Ctrl/Cmd+Shift+R) — occasionally a tablet browser holds on to old
+JavaScript regardless of the no-cache header.
+
+---
+
 ## Levels
 
 Two separate level systems, which is how reading platforms actually do it,
