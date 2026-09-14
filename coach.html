@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coach panel — The Reading Den</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="top-row">
+      <div class="brand"><span class="logo">🦉</span> The Reading Den</div>
+      <a class="pill" href="index.html">← Home</a>
+    </div>
+
+    <div class="card">
+      <h1>Coach panel</h1>
+      <p class="lead">Set today's level and activity here — only this screen shows the controls, the same way a reader portal is kept separate from what the student sees.</p>
+    </div>
+
+    <div class="card">
+      <h2>1 · Phase</h2>
+      <div class="choice-grid" id="phase-picker"></div>
+      <p class="note-box" id="phase-blurb" style="margin-top:12px;"></p>
+    </div>
+
+    <div class="card">
+      <h2>2 · What's he already learned in this phase?</h2>
+      <p class="lead" style="margin-top:-6px;">Tick these off as his school teaches them (or as he shows he's secure with them) — the app uses this to suggest today's set.</p>
+      <p style="margin:4px 0 6px;font-weight:700;">Sound sets</p>
+      <div class="checklist" id="set-checklist"></div>
+      <p style="margin:16px 0 6px;font-weight:700;">Tricky words</p>
+      <div class="checklist" id="tricky-checklist"></div>
+    </div>
+
+    <div class="card">
+      <h2>3 · Today's activity</h2>
+      <div class="choice-grid" id="activity-picker"></div>
+      <div id="set-sub-picker" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>4 · Mode</h2>
+      <div class="choice-grid" id="mode-picker"></div>
+    </div>
+
+    <div class="card">
+      <h2>Coach notes</h2>
+      <div class="note-box" id="coach-tip"></div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <button class="btn" id="start-here">▶ Start Kid view on this screen</button>
+        <button class="btn accent" id="start-new-tab">↗ Open Kid view in a new tab</button>
+        <button class="btn secondary" id="reset-session">✨ Reset session stars</button>
+      </div>
+      <p class="lead" style="margin-top:14px;">Session stars so far: <strong id="star-count">0</strong> ⭐</p>
+    </div>
+
+    <div class="card">
+      <h2>Preview — what he sees</h2>
+      <div class="preview-frame-wrap">
+        <iframe class="preview" id="preview-frame" src="play.html?embed=1" title="Kid view preview"></iframe>
+      </div>
+    </div>
+
+    <footer class="tiny">
+      Two tabs/windows of the same browser stay in sync automatically. Two
+      separate devices only match if you set each one up the same way here —
+      there's no server behind this, it's all stored on this device.
+    </footer>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script src="assets/coach.js"></script>
+</body>
+</html>
