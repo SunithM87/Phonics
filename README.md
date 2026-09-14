@@ -55,6 +55,46 @@ opened in. Realistically, for one parent and one child this usually means
 either sitting at one screen together, or handing over a tablet already
 opened to `play.html` once you've set things up on your own device.
 
+## Hosting it on a NAS
+
+UGOS (the UGREEN NAS OS) has no built-in "Web Station" the way Synology or
+QNAP do, so the way to serve this as a real always-on site is a small Docker
+container — `deploy/docker-compose.yml` and `deploy/nginx.conf` in this repo
+do exactly that (nginx serving the static files, no caching so your edits
+show up on refresh). Verified working end to end before this was written.
+
+1. **Get the files onto the NAS.** Easiest: map the NAS as a network drive
+   (Finder → Connect to Server, or Windows → Map Network Drive) using its
+   SMB address, create a shared folder (e.g. `reading-den`), and copy this
+   whole repo folder into it. (A ZIP download from GitHub, uploaded and
+   extracted via the Files app, works too.)
+2. **Install Docker**, if it isn't already: UGOS Pro → App Center → search
+   "Docker" → Install. (Current DXP/DH4300 Plus models support it; older
+   entry-level models like the DH2300 don't.)
+3. Open the **Docker app → Project**, and point it at
+   `reading-den/deploy/docker-compose.yml` — or paste its contents in. Before
+   running it, edit the `volumes:` line: replace `../` with the actual
+   absolute path to the `reading-den` folder, copied from the **Files** app
+   (don't guess it — copy it, since the exact path scheme varies by model).
+   It'll look something like `/volume1/reading-den:/usr/share/nginx/html:ro`.
+4. Deploy the project. Visit `http://<your-nas-ip>:8080` from any device on
+   your home network.
+
+A couple of things worth knowing before you do this:
+
+- **Don't port-forward this to the internet.** There's nothing here worth
+  exposing outside your home network, and no login screen guarding it —
+  keep it LAN-only. If your NAS has a fixed/reserved local IP (worth setting
+  in your router if it doesn't already), the address won't change.
+- **Hosting it centrally doesn't fix cross-device sync.** This is worth
+  being explicit about, since it's an easy wrong assumption: Coach and Kid
+  views still sync via each *browser's* `localStorage`, not via the NAS. So
+  now every device on the network can reach the same URL (genuinely nice —
+  no more "which laptop was it running on"), but opening Coach on your
+  phone and Kid view on a tablet still won't talk to each other live; that'd
+  need an actual backend, which this doesn't have. Say the word if you want
+  that built — it's a real feature, just a bigger one than "host it."
+
 ## Content structure
 
 `assets/data.js` holds everything: which letter-sounds (GPCs) belong to each

@@ -1,0 +1,22 @@
+# See README.md ("Hosting it on a NAS") before editing this file.
+#
+# On UGOS Pro's Docker app this is deployed as a "Project". Before you
+# deploy it, change the volumes path below from the relative "../" to the
+# actual absolute path of this folder on your NAS — copy it from the Files
+# app rather than guessing it (UGREEN's own Docker guide recommends this
+# too, since the path scheme can differ between models).
+#
+# Example, if you copied the repo into a shared folder called
+# "reading-den": /volume1/reading-den:/usr/share/nginx/html:ro
+
+services:
+  reading-den:
+    image: nginx:alpine
+    container_name: reading-den
+    restart: unless-stopped
+    ports:
+      - "8080:80" # visit http://<your-nas-ip>:8080 — change the left-hand
+                   # number if 8080 is already used by something else
+    volumes:
+      - ../:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
