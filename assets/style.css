@@ -339,10 +339,10 @@ a { color: inherit; }
 .tircell:hover { background: #97bcec; }
 .tircell:disabled { cursor: default; }
 .tir-num { position: absolute; top: 7px; left: 11px; font-family: var(--ui); font-size: .8rem; opacity: .55; font-weight: 600; }
-.tir-mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4.4rem; }
+.tir-mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4.6rem; }
 .tircell.m-x .tir-mark { color: #d94a44; }
 .tircell.m-o .tir-mark { color: #2f6fd0; }
-.tircell.m-x .tir-word, .tircell.m-o .tir-word { opacity: .32; }
+.tircell.m-x .tir-word, .tircell.m-o .tir-word { opacity: .14; }
 .tircell.win { background: var(--amber); }
 
 /* ---------------------------- mystery word ---------------------------- */

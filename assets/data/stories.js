@@ -57,7 +57,7 @@ const STORIES = [
       { text: "The fox can not get in!", tricky: ["the"],
         scene: { bg: "garden", alt: "The fox at the shed door, shut out", items: [["shed", { x: 220, y: 190, s: 1.2 }], ["fox", { x: 120, y: 248, s: 1.4 }]] } },
       { text: "The hen has a pan. Bang! Bang!", tricky: ["the", "has"],
-        scene: { bg: "garden", alt: "The hen banging a pan", items: [["hen", { x: 150, y: 230, s: 1.6 }], ["pan", { x: 235, y: 205, s: 1.2 }], ["bang", { x: 300, y: 140, s: 1.5 }]] } },
+        scene: { bg: "garden", alt: "The hen banging a pan", items: [["hen", { x: 148, y: 232, s: 1.6 }], ["pan", { x: 248, y: 243, s: 1.25 }], ["bang", { x: 312, y: 150, s: 1.5 }]] } },
       { text: "The fox ran off. The hen can nap.", tricky: ["the"],
         scene: { bg: "garden", alt: "The fox running away while the hen rests", items: [["fox", { x: 340, y: 245, s: 1, flip: true }], ["nest", { x: 150, y: 245, s: 1.1 }], ["hen", { x: 150, y: 225, s: 1.2 }]] } },
     ],
