@@ -58,7 +58,7 @@ For two *devices* (your laptop and his tablet), you need the sync server:
 ```
 cd server && npm install        # once — pulls one dependency, ws
 cd .. && PUBLIC_DIR="$PWD" STATE_FILE="$PWD/deploy/data/state.json" node server/server.js
-# then open http://<your-machine>:8080 on both devices
+# then open http://<your-machine>:8000 on both devices
 ```
 
 Or run it properly on a NAS — see below.
@@ -76,26 +76,36 @@ small Docker container: `server/` is a tiny Node server (one dependency) that
 serves the site *and* keeps every screen in sync over a WebSocket.
 `deploy/docker-compose.yml` builds and runs it.
 
-1. **Get the files onto the NAS** — easiest is to map it as a network drive
-   and copy the folder over.
+The compose file is already set up for this machine: the repo at
+**`/volume1/Windows/Reading Den`**, served on **port 8000**. If either of
+those ever changes, they're the first thing in `deploy/docker-compose.yml`.
+
+1. **Copy the folder to `/volume1/Windows/Reading Den`** — easiest is to map
+   the NAS as a network drive and drag it over. Keep the folder structure
+   as-is; `deploy/data` is created automatically on first run.
 2. **App Center → Docker → Install** (current DXP / DH4300 Plus models
    support it; the entry-level DH2300 doesn't).
-3. **Docker → Project**, point it at `deploy/docker-compose.yml`. Edit the two
-   paths under `volumes:` to the real absolute paths on your NAS — copy them
-   out of the Files app rather than guessing, the scheme varies by model.
+3. **Docker → Project**, point it at
+   `/volume1/Windows/Reading Den/deploy/docker-compose.yml`.
    If the Project UI won't handle the `build:` section, enable SSH
    (Control Panel → Terminal) and run `docker compose up -d --build` once
-   from the `deploy` folder.
-4. Open `http://<nas-ip>:8080` on any device in the house.
+   from the `deploy` folder instead.
+4. Open `http://<nas-ip>:8000` on any device in the house.
+
+The folder name has a space in it, which is the usual way compose bind
+mounts break — so the volumes use the long `type: bind` form rather than
+the one-line `source:target:ro` string, which splits on colons. Verified
+end to end against a copy of the app at a path with a space in it.
 
 **Two things worth knowing:**
 
 - **Don't port-forward this.** There's no login and no accounts, by design —
   it's one family's shared state. That's fine on your own LAN and a bad idea
   on the open internet.
-- **His progress lives in `deploy/data/state.json`** on the NAS. It's the
-  record of which sounds and tricky words he's got. Worth including in
-  whatever you already back up.
+- **His progress lives in
+  `/volume1/Windows/Reading Den/deploy/data/state.json`.** It's the record of
+  which sounds and tricky words he's got, and which books he's read. Worth
+  including in whatever you already back up.
 
 ---
 

@@ -1,19 +1,19 @@
-# See README.md ("Hosting it on a NAS") before editing this file.
+# Deployment for the UGREEN NAS.
 #
-# On UGOS Pro's Docker app this is deployed as a "Project". Before you
-# deploy it, change BOTH volumes paths below from the relative "../" and
-# "./data" to the actual absolute paths on your NAS — copy them from the
-# Files app rather than guessing (UGREEN's own Docker guide recommends
-# this too, since the path scheme can differ between models). Example, if
-# you copied the repo into a shared folder called "reading-den":
-#   /volume1/reading-den:/app/public:ro
-#   /volume1/reading-den/deploy/data:/app/data
+# Paths below are the real ones for this setup: the repo lives at
+#   /volume1/Windows/Reading Den
+# and the site is served on port 8000 → http://<your-nas-ip>:8000
 #
-# If your NAS's Docker "Project" UI doesn't support the `build:` section
-# below, run this once over SSH instead (Control Panel > Terminal to
-# enable it): `docker compose up -d --build` from this folder — that
-# builds the image locally and starts it, and the Project UI can still
-# manage it afterwards.
+# Note the space in "Reading Den". That's why the volumes use the long
+# `type: bind` form rather than the usual one-line "source:target:ro"
+# string — the short form splits on colons and a path with a space in it
+# is where that tends to go wrong. This form has no such ambiguity.
+#
+# If your NAS's Docker "Project" UI won't handle the `build:` section,
+# enable SSH (Control Panel → Terminal) and run this once from this
+# folder instead:
+#   docker compose up -d --build
+# The Project view can still manage the container afterwards.
 
 services:
   reading-den:
@@ -23,12 +23,20 @@ services:
     container_name: reading-den
     restart: unless-stopped
     ports:
-      - "8080:8080" # visit http://<your-nas-ip>:8080 — change the left-hand
-                     # number if 8080 is already used by something else
+      - "8000:8000"
     environment:
-      - PORT=8080
+      - PORT=8000
       - PUBLIC_DIR=/app/public
       - STATE_FILE=/app/data/state.json
     volumes:
-      - ../:/app/public:ro
-      - ./data:/app/data
+      # The site itself — read-only, because the container never needs to
+      # write to it. Edit the files on the NAS and just refresh the browser.
+      - type: bind
+        source: /volume1/Windows/Reading Den
+        target: /app/public
+        read_only: true
+      # His progress (sounds ticked off, tricky words, books read) lives
+      # here. This is the one directory worth backing up.
+      - type: bind
+        source: /volume1/Windows/Reading Den/deploy/data
+        target: /app/data

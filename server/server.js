@@ -5,21 +5,25 @@
  * site, and keeps exactly one shared document in sync across every
  * connected browser via WebSocket. That's the whole job — there's no
  * auth, no accounts, no per-user anything, because this is one family's
- * shared state, meant to live on a home LAN. See README.md ("Cross-device
- * sync") before exposing this beyond your own network — as shipped, ANYONE
- * who can reach this port can read and write the shared state.
+ * shared state, meant to live on a home LAN. See README.md before
+ * exposing this beyond your own network — as shipped, ANYONE who can
+ * reach this port can read and write the shared state.
  *
- * The document has three parts:
- *   liveState — what's on screen right now (phase, activity, set, mode…)
- *   progress  — the "what's he already learned" checklist
- *   game      — in-progress state for whichever game is running
+ * The document has two parts, matching assets/core.js:
+ *   liveState — what's on screen right now (level, band, activity, and
+ *               each activity's own state: story page, game board, …)
+ *   progress  — the lasting record: sounds and tricky words ticked off,
+ *               books marked as read
  *
- * Protocol: a client sends {type:"update", liveState?|progress?|game?} for
+ * Protocol: a client sends {type:"update", liveState?, progress?} for
  * whichever slice changed (each slice is replaced wholesale, not merged —
  * keeps this file simple and avoids partial-merge bugs). The server then
- * broadcasts {type:"sync", liveState, progress, game} — the full document —
- * to every connected client, including the one that sent the update, so
- * everyone converges on exactly the same state.
+ * broadcasts {type:"sync", liveState, progress} — the full document — to
+ * every connected client, including the sender, so everyone converges.
+ *
+ * The defaults below must stay in step with DEFAULT_STATE in core.js:
+ * on a brand-new deployment with no state.json yet, these are what the
+ * first browser to connect gets handed.
  */
 
 const http = require("http");
@@ -27,23 +31,20 @@ const fs = require("fs");
 const path = require("path");
 const { WebSocketServer } = require("ws");
 
-const PORT = Number(process.env.PORT || 8080);
+const PORT = Number(process.env.PORT || 8000);
 const PUBLIC_DIR = path.resolve(process.env.PUBLIC_DIR || "/app/public");
 const STATE_FILE = path.resolve(process.env.STATE_FILE || "/app/data/state.json");
 
 const DEFAULT_DOC = {
   liveState: {
-    phase: 2,
-    activity: "sounds",
-    setId: "2-a",
-    mode: "practice",
-    index: 0,
-    sessionStars: 0,
-    childName: "",
+    level: 1,
+    band: "pink",
+    activity: "flashcards",
+    tab: "sounds",
+    showDirections: true,
     updatedAt: 0,
   },
-  progress: { gpcs: {}, tricky: {} },
-  game: { kind: null },
+  progress: { sounds: {}, tricky: {}, read: {} },
 };
 
 function loadDoc() {
@@ -53,7 +54,6 @@ function loadDoc() {
     return {
       liveState: { ...DEFAULT_DOC.liveState, ...parsed.liveState },
       progress: { ...DEFAULT_DOC.progress, ...parsed.progress },
-      game: { ...DEFAULT_DOC.game, ...parsed.game },
     };
   } catch (e) {
     return JSON.parse(JSON.stringify(DEFAULT_DOC));
@@ -88,7 +88,10 @@ function serveStatic(req, res) {
   let reqPath = decodeURIComponent(req.url.split("?")[0]);
   if (reqPath === "/") reqPath = "/index.html";
   const filePath = path.normalize(path.join(PUBLIC_DIR, reqPath));
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  // Must be PUBLIC_DIR itself or genuinely inside it. A bare startsWith()
+  // would also accept a sibling directory whose name merely begins with
+  // the same string (/app/public-secrets), so check the separator too.
+  if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(403);
     return res.end("Forbidden");
   }
@@ -146,10 +149,6 @@ wss.on("connection", (ws) => {
     }
     if (msg.progress && typeof msg.progress === "object") {
       doc.progress = msg.progress;
-      changed = true;
-    }
-    if (msg.game && typeof msg.game === "object") {
-      doc.game = msg.game;
       changed = true;
     }
     if (changed) {

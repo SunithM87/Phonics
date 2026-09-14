@@ -7,5 +7,5 @@ WORKDIR /app
 COPY server/package.json ./
 RUN npm install --omit=dev --no-audit --no-fund
 COPY server/server.js ./
-EXPOSE 8080
+EXPOSE 8000
 CMD ["node", "server.js"]
