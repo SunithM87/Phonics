@@ -1,16 +1,23 @@
 /*
  * Shared state helpers for the Reading Den.
  *
- * State lives in localStorage so the Coach page and the Kid page can be two
- * tabs (or two windows) of the SAME browser and stay in sync — that's the
- * same trick chapterone.org's "reader portal" / "student view" split relies
- * on, just done with no server. Two separate DEVICES will only match if you
- * set them up the same way on each; localStorage doesn't travel between
- * devices. See README for details.
+ * State always lives in localStorage first — that's what makes two tabs of
+ * the SAME browser stay in sync with zero setup, and it's what lets this
+ * whole app still work if you just open index.html with no server at all.
+ *
+ * When a sync server IS reachable (see server/server.js — the Docker setup
+ * on the NAS runs one), this file also opens a WebSocket to it. From then
+ * on, every loadState/saveState (and progress/game equivalents) call also
+ * pushes to the server, and the server's broadcasts get written straight
+ * back into localStorage and re-announced as the same local events — so
+ * coach.js and play.js don't need to know or care whether they're synced
+ * to just this browser or to every device on the house wifi. See
+ * isSyncConnected() if you want to show the difference in the UI.
  */
 
 const STATE_KEY = "rd_state_v1";
 const PROGRESS_KEY = "rd_progress_v1";
+const GAME_KEY = "rd_game_v1";
 
 const DEFAULT_STATE = {
   phase: 2,
@@ -33,12 +40,13 @@ function loadState() {
   }
 }
 
-function saveState(partial) {
+function saveState(partial, fromServer) {
   const next = { ...loadState(), ...partial, updatedAt: Date.now() };
   localStorage.setItem(STATE_KEY, JSON.stringify(next));
   // Fire a same-tab event too — the native 'storage' event only fires in
   // OTHER tabs/documents, not the one that made the change.
   window.dispatchEvent(new CustomEvent("rd-state-changed", { detail: next }));
+  if (!fromServer) sendUpdate({ liveState: next });
   return next;
 }
 
@@ -53,8 +61,9 @@ function loadProgress() {
   }
 }
 
-function saveProgress(progress) {
+function saveProgress(progress, fromServer) {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  if (!fromServer) sendUpdate({ progress });
 }
 
 function markSetLearned(setId, learned) {
@@ -132,3 +141,136 @@ function boldTrickyWords(text, trickyList) {
   });
   return out;
 }
+
+// The word bank the three games draw challenges from: every decodable word
+// tagged to the currently-selected set. Shared here rather than duplicated
+// in games.js since getItemsForActivity() already knows this shape.
+function getWordBank(state) {
+  const phaseData = PHONICS_DATA.phases[state.phase];
+  return phaseData.words.filter((w) => w.set === state.setId);
+}
+
+// Shared kid-screen reward feedback — used by play.js's activities and by
+// all three games in games.js, so it lives here rather than in either.
+function burstConfetti() {
+  const wrap = document.createElement("div");
+  wrap.className = "confetti-burst";
+  const pieces = ["⭐", "🎉", "✨", "🌟"];
+  for (let i = 0; i < 14; i++) {
+    const span = document.createElement("span");
+    span.className = "confetti-piece";
+    span.textContent = pieces[i % pieces.length];
+    span.style.left = `${Math.random() * 100}%`;
+    span.style.animationDelay = `${Math.random() * 0.3}s`;
+    wrap.appendChild(span);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(() => wrap.remove(), 2000);
+}
+
+function awardStar() {
+  const state = loadState();
+  saveState({ sessionStars: state.sessionStars + 1 });
+  burstConfetti();
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- Game state (Three in a Row / Match Pairs / Word Bingo) ----------
+
+const DEFAULT_GAME = { kind: null };
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(GAME_KEY);
+    if (!raw) return { ...DEFAULT_GAME };
+    return JSON.parse(raw);
+  } catch (e) {
+    return { ...DEFAULT_GAME };
+  }
+}
+
+function saveGame(game, fromServer) {
+  localStorage.setItem(GAME_KEY, JSON.stringify(game));
+  window.dispatchEvent(new CustomEvent("rd-state-changed", { detail: game }));
+  if (!fromServer) sendUpdate({ game });
+  return game;
+}
+
+// ---------------------------- Sync layer ------------------------------
+//
+// Opens a WebSocket to this same origin's server (server/server.js) if
+// one is reachable. Deliberately best-effort: if you're just opening
+// index.html directly (file://) or serving it with a plain static server
+// that has no backend, this quietly never connects and the app runs
+// exactly as it did before — localStorage-only, single-browser.
+
+let ws = null;
+let syncConnected = false;
+let reconnectDelay = 1000;
+
+function isSyncConnected() {
+  return syncConnected;
+}
+
+function setSyncStatus(connected) {
+  syncConnected = connected;
+  window.dispatchEvent(new CustomEvent("rd-sync-status", { detail: { connected } }));
+}
+
+function sendUpdate(payload) {
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: "update", ...payload }));
+  }
+}
+
+function applySyncDoc(msg) {
+  if (msg.liveState) saveState(msg.liveState, true);
+  if (msg.progress) saveProgress(msg.progress, true);
+  if (msg.game) saveGame(msg.game, true);
+}
+
+function connectSync() {
+  if (window.location.protocol === "file:") return; // no server possible
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const url = `${proto}//${window.location.host}/ws`;
+  try {
+    ws = new WebSocket(url);
+  } catch (e) {
+    return;
+  }
+  ws.onopen = () => {
+    reconnectDelay = 1000;
+    setSyncStatus(true);
+  };
+  ws.onmessage = (event) => {
+    let msg;
+    try {
+      msg = JSON.parse(event.data);
+    } catch (e) {
+      return;
+    }
+    if (msg.type === "sync") applySyncDoc(msg);
+  };
+  ws.onclose = () => {
+    setSyncStatus(false);
+    setTimeout(connectSync, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 1.6, 15000);
+  };
+  ws.onerror = () => {
+    try {
+      ws.close();
+    } catch (e) {
+      /* onclose will still fire and schedule a retry */
+    }
+  };
+}
+
+connectSync();

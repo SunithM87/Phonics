@@ -11,6 +11,7 @@
   <div class="wrap">
     <div class="top-row">
       <div class="brand"><span class="logo">🦉</span> The Reading Den</div>
+      <span class="sync-pill" id="sync-status"></span>
       <a class="pill" href="index.html">← Home</a>
     </div>
 
@@ -37,7 +38,10 @@
     <div class="card">
       <h2>3 · Today's activity</h2>
       <div class="choice-grid" id="activity-picker"></div>
+      <p style="margin:18px 0 6px;font-weight:700;">…or play a game 🎲</p>
+      <div class="choice-grid" id="game-picker"></div>
       <div id="set-sub-picker" style="margin-top:14px;"></div>
+      <div id="new-game-row" style="margin-top:14px;"></div>
     </div>
 
     <div class="card">
@@ -67,14 +71,16 @@
     </div>
 
     <footer class="tiny">
-      Two tabs/windows of the same browser stay in sync automatically. Two
-      separate devices only match if you set each one up the same way here —
-      there's no server behind this, it's all stored on this device.
+      🟢 Synced means every screen watching this — Coach or Kid, any device —
+      updates live. 🟡 This device only means there's no sync server reachable
+      right now, so this browser's changes stay local to it (still fine for
+      one screen, or two tabs of the same browser).
     </footer>
   </div>
 
   <script src="assets/data.js"></script>
   <script src="assets/app.js"></script>
+  <script src="assets/games.js"></script>
   <script src="assets/coach.js"></script>
 </body>
 </html>

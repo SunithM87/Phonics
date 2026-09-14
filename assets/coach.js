@@ -17,6 +17,12 @@ const COACH_TIPS = {
     "This is like a Little Wandle \"reading practice\" session: read it once together for accuracy, then read it again for expression, then talk about what happened. Bold words are the tricky ones — just tell him those.",
   alien:
     "These aren't real words — that's the point. It checks pure decoding (same idea as the Year 1 phonics screening check's \"alien words\"), so there's no guessing from meaning.",
+  "game-tic":
+    "He reads the word out loud before you let him claim a square — the game shouldn't outrun the reading. He plays as 🟢 against a robot that just picks randomly, so it's genuinely winnable (and losable — that's fine, it's low-stakes).",
+  "game-pairs":
+    "A memory game with a phonics twist: each pair is the same word shown two ways — sound-buttons and whole-word — so matching them means reading both, not just remembering positions.",
+  "game-bingo":
+    "Call a word out (tap Call next word so he can't just watch your face for clues), and let him scan his own board to find it — that's real word recognition practice, not just listening.",
 };
 
 function renderPhasePicker() {
@@ -95,11 +101,28 @@ function renderActivityPicker() {
     el.appendChild(btn);
   });
 
-  document.getElementById("coach-tip").textContent = COACH_TIPS[state.activity];
+  const gameEl = document.getElementById("game-picker");
+  gameEl.innerHTML = "";
+  Object.keys(GAME_META).forEach((kind) => {
+    const id = `game-${kind}`;
+    const meta = GAME_META[kind];
+    const btn = document.createElement("button");
+    btn.className = "choice-btn" + (state.activity === id ? " active" : "");
+    btn.innerHTML = `<strong>🎲 ${meta.label}</strong><small>${meta.desc}</small>`;
+    btn.onclick = () => {
+      saveState({ activity: id, index: 0 });
+      renderAll();
+    };
+    gameEl.appendChild(btn);
+  });
+
+  document.getElementById("coach-tip").textContent = COACH_TIPS[state.activity] || "";
 
   const subEl = document.getElementById("set-sub-picker");
   subEl.innerHTML = "";
-  if (state.activity === "sounds" || state.activity === "blend") {
+  const needsSetPicker =
+    state.activity === "sounds" || state.activity === "blend" || gameKindFromActivity(state.activity);
+  if (needsSetPicker) {
     const phaseData = PHONICS_DATA.phases[state.phase];
     const label = document.createElement("p");
     label.style.fontWeight = "700";
@@ -125,6 +148,26 @@ function renderActivityPicker() {
     note.style.marginTop = "10px";
     note.textContent = "No Sound Cards for Phase 4 — there are no new letter-sounds this phase, just squashing known sounds together.";
     subEl.appendChild(note);
+  }
+
+  const newGameRow = document.getElementById("new-game-row");
+  newGameRow.innerHTML = "";
+  const kind = gameKindFromActivity(state.activity);
+  if (kind) {
+    const bank = getWordBank(state);
+    const btn = document.createElement("button");
+    btn.className = "btn accent";
+    btn.textContent = "🎲 Start new game";
+    btn.disabled = bank.length < 3;
+    btn.onclick = () => startGame(kind, state);
+    newGameRow.appendChild(btn);
+    if (bank.length < 3) {
+      const warn = document.createElement("p");
+      warn.className = "note-box";
+      warn.style.marginTop = "8px";
+      warn.textContent = "This set only has " + bank.length + " word" + (bank.length === 1 ? "" : "s") + " — pick one with at least 3 for a game.";
+      newGameRow.appendChild(warn);
+    }
   }
 }
 
@@ -152,12 +195,19 @@ function renderStars() {
   document.getElementById("star-count").textContent = state.sessionStars;
 }
 
+function renderSyncStatus() {
+  const el = document.getElementById("sync-status");
+  el.textContent = isSyncConnected() ? "🟢 Synced across devices" : "🟡 This device only";
+  el.className = "sync-pill" + (isSyncConnected() ? " on" : "");
+}
+
 function renderAll() {
   renderPhasePicker();
   renderChecklists();
   renderActivityPicker();
   renderModePicker();
   renderStars();
+  renderSyncStatus();
 }
 
 document.getElementById("start-here").onclick = () => {
@@ -173,5 +223,6 @@ document.getElementById("reset-session").onclick = () => {
 
 window.addEventListener("storage", renderAll);
 window.addEventListener("rd-state-changed", renderAll);
+window.addEventListener("rd-sync-status", renderSyncStatus);
 
 renderAll();

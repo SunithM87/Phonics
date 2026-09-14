@@ -17,28 +17,6 @@ function findExampleWord(phaseData, gpc) {
   return hit ? hit.word : null;
 }
 
-function burstConfetti() {
-  const wrap = document.createElement("div");
-  wrap.className = "confetti-burst";
-  const pieces = ["⭐", "🎉", "✨", "🌟"];
-  for (let i = 0; i < 14; i++) {
-    const span = document.createElement("span");
-    span.className = "confetti-piece";
-    span.textContent = pieces[i % pieces.length];
-    span.style.left = `${Math.random() * 100}%`;
-    span.style.animationDelay = `${Math.random() * 0.3}s`;
-    wrap.appendChild(span);
-  }
-  document.body.appendChild(wrap);
-  setTimeout(() => wrap.remove(), 2000);
-}
-
-function awardStar() {
-  const state = loadState();
-  saveState({ sessionStars: state.sessionStars + 1 });
-  burstConfetti();
-}
-
 function goNext() {
   const state = loadState();
   const items = getItemsForActivity(state);
@@ -78,7 +56,15 @@ function renderComplete(state) {
   burstConfetti();
 }
 
+function updateSyncBadge() {
+  const el = document.getElementById("sync-status");
+  if (!el) return;
+  el.textContent = isSyncConnected() ? "🟢 Synced" : "🟡 This device only";
+  el.className = "sync-pill" + (isSyncConnected() ? " on" : "");
+}
+
 function render() {
+  updateSyncBadge();
   const state = loadState();
   document.getElementById("stars-display").textContent = "⭐".repeat(Math.min(state.sessionStars, 10)) || "☆";
   document.getElementById("mode-badge").textContent = state.mode === "check" ? "Check mode" : "";
@@ -86,6 +72,15 @@ function render() {
 
   if (showComplete) {
     renderComplete(state);
+    return;
+  }
+
+  if (gameKindFromActivity(state.activity)) {
+    const stage = document.getElementById("stage");
+    const controls = document.getElementById("controls");
+    stage.innerHTML = "";
+    controls.innerHTML = "";
+    renderGame(state, stage, controls);
     return;
   }
 
@@ -183,5 +178,6 @@ function render() {
 
 window.addEventListener("storage", () => { revealed = false; render(); });
 window.addEventListener("rd-state-changed", render);
+window.addEventListener("rd-sync-status", updateSyncBadge);
 
 render();

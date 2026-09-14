@@ -24,6 +24,14 @@ being upfront about what actually happened instead, and why:
   **always defer to what actually comes home in the book bag.** Use the
   checklist in the Coach panel to mark off what's really been taught, rather
   than trusting the default phase groupings blindly.
+- **The three games are originals, not a chapterone.org clone either.**
+  Three in a Row, Match Pairs, and Word Bingo are about as generic a set of
+  game *formats* as exist — noughts-and-crosses, a memory/pairs game, and a
+  bingo card are standard across essentially every reading/phonics platform
+  and plenty that have nothing to do with reading. They're built fresh here,
+  with original code, art (just emoji) and content, tuned to this app's own
+  phonics data. There was no access to chapterone.org to compare against —
+  if its actual games look different from these, that's why.
 
 ## Running it
 
@@ -40,28 +48,53 @@ python3 -m http.server 8000
 
 - **`coach.html`** — pick the phase, tick off what's already been taught,
   choose today's activity (Sound Cards, Build & Blend, Tricky Words, Story
-  Time, Alien Word Check), and Practice vs Check mode. Has a live preview of
-  exactly what the kid screen is showing.
+  Time, Alien Word Check, or one of the three games), and Practice vs Check
+  mode. Has a live preview of exactly what the kid screen is showing.
 - **`play.html`** — the plain screen for reading time. Big text, no menus, a
   small ⚙️ in the corner (asks for confirmation) to get back to the coach
   screen.
 
-They talk to each other via `localStorage`, so **two tabs or windows of the
-same browser stay in sync live** — that's the "remote control" trick, done
-without a server. Two separate physical devices will only match if you set
-each one up the same way in its own Coach panel; there's no server, so
-nothing syncs across devices or persists anywhere but the one browser it's
-opened in. Realistically, for one parent and one child this usually means
-either sitting at one screen together, or handing over a tablet already
-opened to `play.html` once you've set things up on your own device.
+## Cross-device sync
+
+State always lives in the browser's `localStorage` first — that's what
+makes two tabs of the *same* browser sync instantly with zero setup, and
+it's what lets the whole app still work with no server at all (just open
+`index.html`). Look for the 🟢/🟡 pill on either screen: 🟡 *This device
+only* means you're in that plain local mode.
+
+When you're running it through `server/server.js` (which the Docker/NAS
+setup below does automatically), the app also opens a WebSocket to that
+server, and everything — the live activity, the progress checklist, and
+any in-progress game — becomes one shared document kept in sync across
+*every* device watching it. The pill goes 🟢 *Synced*. This was built,
+and tested end to end (two independent browser profiles, standing in for
+two separate devices, watching the same tic-tac-toe game and seeing each
+other's and the robot's moves land live) before being written up here.
+
+There's deliberately no login and no accounts — it's one shared document
+for one family. That's exactly why it must stay off the open internet; see
+"Don't port-forward this" below.
 
 ## Hosting it on a NAS
 
 UGOS (the UGREEN NAS OS) has no built-in "Web Station" the way Synology or
-QNAP do, so the way to serve this as a real always-on site is a small Docker
-container — `deploy/docker-compose.yml` and `deploy/nginx.conf` in this repo
-do exactly that (nginx serving the static files, no caching so your edits
-show up on refresh). Verified working end to end before this was written.
+QNAP do, so the way to serve this as a real always-on site — and the way to
+get the cross-device sync above — is a small Docker container. It's in this
+repo: `server/` is the sync server (Node + the `ws` package, nothing else),
+and `deploy/docker-compose.yml` builds and runs it.
+
+Worth being precise about what was actually verified here, not just
+written: `server.js` itself was run directly and tested hard — two
+independent browser profiles standing in for two separate devices, live
+sync of activities, progress, and an in-progress tic-tac-toe game
+(including the robot's moves) between them, state surviving a server
+restart, and the app degrading gracefully with no server at all. The
+Docker *image build* specifically is standard, unremarkable Dockerfile
+(the same pattern the earlier nginx-based version used, which did build
+and run cleanly) — but the sandbox this was built in hit Docker Hub's
+anonymous pull rate limit partway through this session and the image
+build itself couldn't be completed here. It should build cleanly on your
+NAS's normal internet connection; if it doesn't, that's worth telling me.
 
 1. **Get the files onto the NAS.** Easiest: map the NAS as a network drive
    (Finder → Connect to Server, or Windows → Map Network Drive) using its
@@ -73,27 +106,48 @@ show up on refresh). Verified working end to end before this was written.
    entry-level models like the DH2300 don't.)
 3. Open the **Docker app → Project**, and point it at
    `reading-den/deploy/docker-compose.yml` — or paste its contents in. Before
-   running it, edit the `volumes:` line: replace `../` with the actual
-   absolute path to the `reading-den` folder, copied from the **Files** app
-   (don't guess it — copy it, since the exact path scheme varies by model).
-   It'll look something like `/volume1/reading-den:/usr/share/nginx/html:ro`.
-4. Deploy the project. Visit `http://<your-nas-ip>:8080` from any device on
-   your home network.
+   running it, edit the two paths under `volumes:` (replace `../` and
+   `./data`) with the actual absolute paths on your NAS, copied from the
+   **Files** app — don't guess them, the exact scheme varies by model. The
+   compose file itself has a worked example in its comments.
+   - If the Project UI doesn't support the `build:` section, enable SSH
+     (Control Panel → Terminal) and run `docker compose up -d --build` from
+     the `deploy` folder once — the Project view can manage it from there.
+4. Deploy. Visit `http://<your-nas-ip>:8080` from any device on your home
+   network — that URL now serves the site *and* keeps every device watching
+   it in sync live.
 
 A couple of things worth knowing before you do this:
 
-- **Don't port-forward this to the internet.** There's nothing here worth
-  exposing outside your home network, and no login screen guarding it —
-  keep it LAN-only. If your NAS has a fixed/reserved local IP (worth setting
-  in your router if it doesn't already), the address won't change.
-- **Hosting it centrally doesn't fix cross-device sync.** This is worth
-  being explicit about, since it's an easy wrong assumption: Coach and Kid
-  views still sync via each *browser's* `localStorage`, not via the NAS. So
-  now every device on the network can reach the same URL (genuinely nice —
-  no more "which laptop was it running on"), but opening Coach on your
-  phone and Kid view on a tablet still won't talk to each other live; that'd
-  need an actual backend, which this doesn't have. Say the word if you want
-  that built — it's a real feature, just a bigger one than "host it."
+- **Don't port-forward this to the internet.** There is genuinely nothing
+  guarding the shared state now — no login, no per-user anything, by
+  design, since it's one family's data. That's a fine trade-off on your own
+  LAN and a bad one on the open internet. Keep it there. If your NAS has a
+  fixed/reserved local IP (worth setting in your router if it doesn't
+  already), the address won't change.
+- **His progress checklist and game state now live on the NAS**, in
+  `deploy/data/state.json` (created automatically). Worth including in
+  whatever you already back up, the same as any other file on the NAS —
+  it's the record of what he's learned.
+
+## The games
+
+Three, chosen because they're near-universal phonics-practice formats
+rather than anything specific to one platform:
+
+- **Three in a Row** — noughts and crosses against a (deliberately not
+  very smart) computer opponent. Tap a square, read the word you're shown,
+  confirm you got it, and it's yours.
+- **Match Pairs** — a memory game where each pair is the *same* word shown
+  two ways: as sound-buttons and as the whole word. Matching them means
+  reading both, not just remembering grid positions.
+- **Word Bingo** — call a word, find it on your board. Full house to win.
+
+All three pull their words from whichever set is selected in the Coach
+panel (same content as Build & Blend), so they stay matched to wherever he
+actually is in the phonics scheme rather than being a separate pool of
+content to maintain. A set needs at least 3 words for a game to start —
+every set in `data.js` already qualifies.
 
 ## Content structure
 
@@ -106,6 +160,19 @@ schools use in the Year 1 phonics screening check).
 To extend it — add more words, sentences, or phases — everything follows
 the same shape; the comments at the top of the file explain the phase/set
 model.
+
+## Project layout
+
+```
+index.html, coach.html, play.html   the three pages
+assets/data.js                      phonics content (see above)
+assets/app.js                       state + the sync client (WebSocket)
+assets/games.js                     Three in a Row / Match Pairs / Bingo
+assets/coach.js, play.js            per-page UI logic
+assets/style.css                    shared styling
+server/server.js                    static file + WebSocket sync server
+deploy/docker-compose.yml           NAS deployment (see "Hosting it on a NAS")
+```
 
 ## A couple of honest caveats
 

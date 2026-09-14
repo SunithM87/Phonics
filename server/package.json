@@ -1,0 +1,13 @@
+{
+  "name": "reading-den-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tiny static file + WebSocket sync server for The Reading Den — serves the site and keeps Coach/Kid screens live-synced across devices.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
