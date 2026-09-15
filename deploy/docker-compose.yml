@@ -1,10 +1,10 @@
 # Deployment for the UGREEN NAS.
 #
-# Paths below are the real ones for this setup: the repo lives at
-#   /volume1/Windows/Reading Den
-# and the site is served on port 8000 → http://<your-nas-ip>:8000
+# The paths are relative to this file, so the folder can live anywhere —
+# currently /volume2/appdata/Reading Den — and be moved without editing
+# this. The site is served on port 8000 → http://<your-nas-ip>:8000
 #
-# Note the space in "Reading Den". That's why the volumes use the long
+# The folder name has a space in it. That's why the volumes use the long
 # `type: bind` form rather than the usual one-line "source:target:ro"
 # string — the short form splits on colons and a path with a space in it
 # is where that tends to go wrong. This form has no such ambiguity.
@@ -12,7 +12,7 @@
 # If your NAS's Docker "Project" UI won't handle the `build:` section,
 # enable SSH (Control Panel → Terminal) and run this once from this
 # folder instead:
-#   docker compose up -d --build
+#   sudo docker compose up -d --build
 # The Project view can still manage the container afterwards.
 
 services:
@@ -32,11 +32,11 @@ services:
       # The site itself — read-only, because the container never needs to
       # write to it. Edit the files on the NAS and just refresh the browser.
       - type: bind
-        source: /volume1/Windows/Reading Den
+        source: ..
         target: /app/public
         read_only: true
       # His progress (sounds ticked off, tricky words, books read) lives
       # here. This is the one directory worth backing up.
       - type: bind
-        source: /volume1/Windows/Reading Den/deploy/data
+        source: ./data
         target: /app/data

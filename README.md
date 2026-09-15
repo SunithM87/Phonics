@@ -99,17 +99,18 @@ small Docker container: `server/` is a tiny Node server (one dependency) that
 serves the site *and* keeps every screen in sync over a WebSocket.
 `deploy/docker-compose.yml` builds and runs it.
 
-The compose file is already set up for this machine: the repo at
-**`/volume1/Windows/Reading Den`**, served on **port 8000**. If either of
-those ever changes, they're the first thing in `deploy/docker-compose.yml`.
+The compose file mounts the folder it lives in, so the app can sit
+anywhere on the NAS — currently **`/volume2/appdata/Reading Den`** — and be
+moved without editing anything. It serves on **port 8000**, which is the
+one thing in `deploy/docker-compose.yml` you might want to change.
 
-1. **Copy the folder to `/volume1/Windows/Reading Den`** — easiest is to map
+1. **Copy the folder to `/volume2/appdata/Reading Den`** — easiest is to map
    the NAS as a network drive and drag it over. Keep the folder structure
    as-is; `deploy/data` is created automatically on first run.
 2. **App Center → Docker → Install** (current DXP / DH4300 Plus models
    support it; the entry-level DH2300 doesn't).
 3. **Docker → Project**, point it at
-   `/volume1/Windows/Reading Den/deploy/docker-compose.yml`.
+   `/volume2/appdata/Reading Den/deploy/docker-compose.yml`.
    If the Project UI won't handle the `build:` section, enable SSH
    (Control Panel → Terminal) and run `docker compose up -d --build` once
    from the `deploy` folder instead.
@@ -126,7 +127,7 @@ end to end against a copy of the app at a path with a space in it.
   it's one family's shared state. That's fine on your own LAN and a bad idea
   on the open internet.
 - **His progress lives in
-  `/volume1/Windows/Reading Den/deploy/data/state.json`.** It's the record of
+  `/volume2/appdata/Reading Den/deploy/data/state.json`.** It's the record of
   which sounds and tricky words he's got, and which books he's read. Worth
   including in whatever you already back up.
 
@@ -165,9 +166,9 @@ Those last two over SSH (Control Panel → Terminal), noting the quotes —
 the path has a space in it:
 
 ```
-cd "/volume1/Windows/Reading Den/deploy"
-docker compose up -d --build
-docker compose logs --tail 20
+cd "/volume2/appdata/Reading Den/deploy"
+sudo docker compose up -d --build
+sudo docker compose logs --tail 20
 ```
 
 Or from the UGOS Docker app, stop the project and start it again; for a
@@ -177,6 +178,26 @@ what the SSH command above guarantees.
 If a page still looks stale after a refresh, hard-refresh it
 (Ctrl/Cmd+Shift+R) — occasionally a tablet browser holds on to old
 JavaScript regardless of the no-cache header.
+
+### Moving it to a different folder
+
+The compose file uses relative paths, so a move is: stop, move, start.
+
+```
+cd "/volume2/appdata/Reading Den/deploy"      # wherever it is now
+sudo docker compose down                       # stops and removes the container; data/ is untouched
+sudo mv "/volume2/appdata/Reading Den" "/volume3/somewhere/Reading Den"
+cd "/volume3/somewhere/Reading Den/deploy"
+sudo docker compose up -d --build
+curl -s http://localhost:8000/api/health       # {"ok":true,...} = running
+```
+
+`docker compose down` never touches bind-mounted folders, so
+`deploy/data/state.json` moves with the folder and his progress comes
+along. If the container was created by the UGOS Docker app rather than
+this compose file, `down` won't see it — use `sudo docker rm -f
+reading-den` instead, then repoint or delete the old Project entry in
+the UI (say no if it offers to remove data).
 
 ---
 
