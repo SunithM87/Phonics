@@ -16,12 +16,12 @@ school reading volunteer runs:
 
 | | |
 |---|---|
-| **Flashcards** | Sound tiles and tricky words. Pick a sound, send an example word to his screen, mark ✓ / ✗. Tiles keep their colour, so the record builds up over sessions. |
-| **Stories** | Eleven illustrated decodable books — see below. |
+| **Flashcards** | Sound tiles and tricky words. Pick a sound, send an example word to his screen, optionally with *sound buttons* under it (the word split into its graphemes), mark ✓ / ✗. Tiles keep their colour and the date, so the record builds up over sessions, and a strip above the tiles tells you what to practise next. Tricky words show their **tricky bit** in orange with a one-line note ("the e says /uh/"). |
+| **Stories** | Thirteen illustrated decodable books — see below. |
 | **Word Sort** | Numbered words to sort into coloured bins by the sound they contain. He says "number four goes in the red box". |
 | **3 in a Row** | Noughts and crosses on a 3×3 grid of words. Read the word to claim the square. You against him — click once for ✕, twice for ○. |
-| **Mystery Word** | You pick a secret word, he guesses letters. Wrong guesses cost a star. Five stars and it's revealed. |
-| **Word Wheel** | A rime in the middle, onsets round the outside — turn it and he reads a whole rhyming family: cat, hat, mat, pat, rat, sat. |
+| **Mystery Word** | You pick a secret word, he guesses letters. Wrong guesses cost a star. Five stars and it's revealed. Solved or not, it ends with the whole word and its sound buttons — the reading is the point, not the guessing. |
+| **Word Wheel** | A rime in the middle, onsets round the outside — turn it and he reads a whole rhyming family: cat, hat, mat, pat, rat, sat. Every word shows its sound buttons. |
 | **Whiteboard** | Type sounds or words, drag them around. Good for pulling a word apart and pushing it back together. |
 
 Plus **Send a Sticker** — pops a big emoji on his screen. Worth saving for
@@ -29,18 +29,27 @@ something he found hard.
 
 ### The stories
 
-Eleven proper little books, not practice sentences: a title, a cover, a cast,
-and a beginning/middle/end over five pages. Pip the pug turns up in two of
-them, which for a four-year-old is most of the appeal.
+Thirteen proper little books, not practice sentences: a title, a cover, a
+cast, and a beginning/middle/end over five pages. Pip the pug turns up in
+three of them, which for a four-year-old is most of the appeal.
 
-Every book is banded, and **every word is checked to be decodable at that
-band** — not by eye, but by `tools/check-decodable.js`, which segments each
-word into graphemes and fails if one can't be read with the sounds taught by
-that point.
+Every book carries an exact **Activity Level** — the highest teaching unit
+any of its words needs — and its card says so. That's checked, not eyeballed:
+every word in every book is in a hand-reviewed grapheme bank
+(`assets/data/words.js`), and `tools/check-content.js` fails if a book uses a
+grapheme, a suffix or an adjacent-consonant pattern taught later than its
+declared level.
 
 Tricky words are marked in the data and shown in blue on the page, so you
-know at a glance which words to just tell him rather than make him sound out.
-Click any word on your screen and it highlights on his.
+know at a glance which words to give him the tricky bit of rather than make
+him sound out. The marking is level-aware: *and* is tricky in a Phase 2 book
+(he hasn't met adjacent consonants) but plain in a Phase 4 one, and the
+checker enforces both directions. Click any word on your screen and it
+highlights on his.
+
+Each book has three tick-boxes — **sounding out**, **with expression**,
+**talked about it** — because the scheme's model is the same book read
+three times over a week, and one "mark as read" flag doesn't record that.
 
 Pictures are composed from an original SVG kit (`assets/data/art.js`) — one
 shared cast and prop set, so characters stay recognisable page to page.
@@ -63,9 +72,20 @@ cd .. && PUBLIC_DIR="$PWD" STATE_FILE="$PWD/deploy/data/state.json" node server/
 
 Or run it properly on a NAS — see below.
 
-Look for the pill at the top right of the portal: **● Synced to his screen**
-means both screens are live; **● This device only** means there's no server,
-which is still perfectly usable on one screen.
+Look for the pill at the top right of the portal. It reports what's
+actually true, not just whether *your* screen reached the server:
+
+- **● His screen is connected** — both screens are live.
+- **● Server on · his screen isn't open** — you're synced but nothing will
+  appear anywhere until his screen is open.
+- **● No server — this screen only** — still perfectly usable on one screen.
+
+His screen has the same three states in miniature at the top.
+
+If either device drops off Wi-Fi mid-session, anything you mark while
+offline is kept and pushed when it reconnects — the server and the browser
+both keep the newer of the two records rather than the server's copy
+blindly winning.
 
 ---
 
@@ -155,15 +175,33 @@ JavaScript regardless of the no-cache header.
 Two separate level systems, which is how reading platforms actually do it,
 because they move independently:
 
-**Activity Level 1–6** drives flashcards and games. It follows the published
-Little Wandle Reception and Year 1 programme — four new sounds a week — so
-Level 1 is Reception Autumn 1 (`s a t p` / `i n m d` / `g o c k` / `ck e u r`
-/ `h b f l`, tricky words *is, I, the*) and it builds from there. The order,
-the weekly grouping and the tricky-word lists were taken from the published
-Little Wandle programme overview and pacing document, and the tricky-word
-counts match the official lists exactly (22 / 9 / 18 / 34 for Phases 2–5).
+**Activity Level 1–21** drives flashcards and games. Each level is one of
+Little Wandle's own teaching units, in the published order: the Reception
+weeks (four new sounds each — Level 1 is `s a t p`, Level 2 `i n m d`, and
+so on through Phases 2 and 3), then the Phase 4 adjacent-consonant sets,
+then the Year 1 Phase 5 sets. The picker groups them by Phase and shows the
+sounds and tricky words each one adds. Move it up whenever school does; the
+tricky-word lists match the official ones exactly (22 / 9 / 18 / 34 for
+Phases 2–5).
 
-**Story Level** is a book-band colour — Pink, Red, Yellow, Blue.
+Everything the level gates is gated mechanically. Every word the app can
+show is in the grapheme bank with its sounds spelled out
+(`ship: ["sh","i","p"]`, `cake: ["c","a-e","k"]`), and a word is only
+offered at a level if every one of its graphemes has been taught, any `-s`
+ending has been taught (Level 10), and any two consonants side by side
+(`st`, `mp`, `tr`) have been taught (Phase 4, Levels 15–16). So Level 1 is
+genuinely just `s a t p` words — seven of them — and the games that need
+more than that say so and wait for Level 2.
+
+Some tricky words stop being tricky: *and*, *her*, *when*, *out*, *my* are
+all decodable once their sounds arrive. They stay on the tricky-word tiles
+(school keeps teaching them), but the stories stop marking them once he can
+read them.
+
+**Story Level** is a book-band colour — Pink, Red, Yellow, Blue, Orange —
+and each band is pinned to a maximum Activity Level (10 / 14 / 16 / 18 / 21).
+The chip picker lists every book in the band with its exact level, and a
+book card turns amber when its level is above his current Activity Level.
 
 > **An honest caveat on the band colours.** Book bands are near-universal in
 > UK schools, but they are **not** a Little Wandle thing. Little Wandle
@@ -201,14 +239,16 @@ index.html, coach.html, play.html   landing / reader portal / child's screen
 assets/core.js                      state + WebSocket sync
 assets/activities.js                all seven activities (coach + student modes)
 assets/coach.js, play.js            the two page shells
-assets/data/phonics.js              levels, sounds, tricky words, game word pools
-assets/data/stories.js              the eleven books
+assets/data/phonics.js              the 21 units, tricky-word parts, sound examples, sorts, wheels
+assets/data/words.js                the grapheme bank: every word the app can show, with its sounds
+assets/data/stories.js              the thirteen books
 assets/data/art.js                  SVG scene kit for the illustrations
 assets/style.css                    everything visual
 assets/fonts/                       Andika (SIL OFL)
-server/server.js                    static server + sync
-tools/check-decodable.js            validates every story word against its band
+server/server.js                    static server + sync (http + ws, nothing else)
+tools/check-content.js              validates every word, sort, wheel, story and tricky mark against its level
 tools/check-determinism.js          guards that both screens compute the same thing
+tools/segment.js                    helper for adding words to the bank (draft segmentation, then review by hand)
 deploy/docker-compose.yml           NAS deployment
 ```
 
@@ -217,9 +257,17 @@ deploy/docker-compose.yml           NAS deployment
 ## Checks
 
 ```
-node tools/check-decodable.js      every story word readable at its band
+node tools/check-content.js        every word, sort, wheel and story readable at its declared level; tricky marks right
 node tools/check-determinism.js    game boards identical on both screens
 ```
+
+The first one replaced an earlier checker that segmented words by scanning
+for letter strings — which happily passed *cake*, *train* and *egg* at Phase
+2 because it could find `c`, `a`, `k`, `e` in them. Segmenting is now done
+once, by hand, into `assets/data/words.js`, and the checker only asks
+whether each recorded sound has been taught yet. Adding a word means adding
+its sounds; `node tools/segment.js <word>` drafts that for you, but the
+answer gets reviewed, not trusted.
 
 The second one exists because of a real bug: the word boards were shuffled
 with `Math.random()`, so the reader portal and the child's screen dealt
@@ -242,5 +290,9 @@ to be a pure function of the shared state, and that check enforces it.
   never the code, and all the stories, art, words and code here are original.
   Not affiliated with or endorsed by Little Wandle / Wandle Learning Trust
   either; it just follows their published progression.
+- **The grapheme bank is hand-reviewed, not infallible.** 500-odd words,
+  each with its sounds spelled out. If you spot one that's wrong, fixing the
+  entry in `assets/data/words.js` fixes it everywhere and the checker will
+  tell you if the change puts a story out of level.
 - **School wins.** If anything here contradicts what's coming home in his
   book bag, the school is right and this is wrong.

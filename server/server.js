@@ -3,27 +3,31 @@
  *
  * Deliberately tiny and dependency-light (just `ws`): serves the static
  * site, and keeps exactly one shared document in sync across every
- * connected browser via WebSocket. That's the whole job — there's no
- * auth, no accounts, no per-user anything, because this is one family's
- * shared state, meant to live on a home LAN. See README.md before
- * exposing this beyond your own network — as shipped, ANYONE who can
- * reach this port can read and write the shared state.
+ * connected browser via WebSocket. There's no auth, no accounts, no
+ * per-user anything, because this is one family's shared state, meant to
+ * live on a home LAN. See README.md before exposing this beyond your own
+ * network — as shipped, ANYONE who can reach this port can read and write
+ * the shared state.
  *
  * The document has two parts, matching assets/core.js:
  *   liveState — what's on screen right now (level, band, activity, and
  *               each activity's own state: story page, game board, …)
- *   progress  — the lasting record: sounds and tricky words ticked off,
- *               books marked as read
+ *   progress  — the lasting record: sounds and tricky words assessed,
+ *               books read (three reads each)
  *
- * Protocol: a client sends {type:"update", liveState?, progress?} for
- * whichever slice changed (each slice is replaced wholesale, not merged —
- * keeps this file simple and avoids partial-merge bugs). The server then
- * broadcasts {type:"sync", liveState, progress} — the full document — to
- * every connected client, including the sender, so everyone converges.
+ * Protocol:
+ *   client → {type:"hello", role:"coach"|"student"}   on connect
+ *   client → {type:"update", liveState?, progress?}   whichever slice changed
+ *   server → {type:"sync", liveState, progress}        on connect and on every change
+ *   server → {type:"presence", coaches, students}      whenever who's connected changes
  *
- * The defaults below must stay in step with DEFAULT_STATE in core.js:
- * on a brand-new deployment with no state.json yet, these are what the
- * first browser to connect gets handed.
+ * Each slice carries its own updatedAt; the server keeps whichever is
+ * newer, so a stale snapshot from one screen cannot overwrite fresher work
+ * from another. The client does the same on receipt.
+ *
+ * The defaults below must stay in step with DEFAULT_STATE in core.js: on a
+ * brand-new deployment with no state.json yet, these are what the first
+ * browser to connect gets handed.
  */
 
 const http = require("http");
@@ -36,21 +40,13 @@ const PUBLIC_DIR = path.resolve(process.env.PUBLIC_DIR || "/app/public");
 const STATE_FILE = path.resolve(process.env.STATE_FILE || "/app/data/state.json");
 
 const DEFAULT_DOC = {
-  liveState: {
-    level: 1,
-    band: "pink",
-    activity: "flashcards",
-    tab: "sounds",
-    showDirections: true,
-    updatedAt: 0,
-  },
-  progress: { sounds: {}, tricky: {}, read: {} },
+  liveState: { level: 1, band: "pink", activity: "flashcards", tab: "sounds", showDirections: true, updatedAt: 0 },
+  progress: { sounds: {}, tricky: {}, read: {}, updatedAt: 0 },
 };
 
 function loadDoc() {
   try {
-    const raw = fs.readFileSync(STATE_FILE, "utf8");
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
     return {
       liveState: { ...DEFAULT_DOC.liveState, ...parsed.liveState },
       progress: { ...DEFAULT_DOC.progress, ...parsed.progress },
@@ -67,30 +63,34 @@ function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     fs.mkdir(path.dirname(STATE_FILE), { recursive: true }, () => {
-      fs.writeFile(STATE_FILE, JSON.stringify(doc, null, 2), (err) => {
-        if (err) console.error("Failed to persist state:", err.message);
+      // write to a temp file and rename, so a crash mid-write can't leave a
+      // half-written state.json behind
+      const tmp = STATE_FILE + ".tmp";
+      fs.writeFile(tmp, JSON.stringify(doc, null, 2), (err) => {
+        if (err) return console.error("Failed to persist state:", err.message);
+        fs.rename(tmp, STATE_FILE, (err2) => { if (err2) console.error("Failed to persist state:", err2.message); });
       });
     });
   }, 150);
 }
 
 const MIME = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
-  ".png": "image/png",
+  ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png",
+  ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8",
 };
 
 function serveStatic(req, res) {
-  let reqPath = decodeURIComponent(req.url.split("?")[0]);
+  let reqPath;
+  try {
+    reqPath = decodeURIComponent(req.url.split("?")[0]);
+  } catch (e) {
+    // malformed percent-encoding — a bad request, not a reason to fall over
+    res.writeHead(400, { "Content-Type": "text/plain" });
+    return res.end("Bad request");
+  }
   if (reqPath === "/") reqPath = "/index.html";
   const filePath = path.normalize(path.join(PUBLIC_DIR, reqPath));
-  // Must be PUBLIC_DIR itself or genuinely inside it. A bare startsWith()
-  // would also accept a sibling directory whose name merely begins with
-  // the same string (/app/public-secrets), so check the separator too.
   if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(403);
     return res.end("Forbidden");
@@ -100,65 +100,86 @@ function serveStatic(req, res) {
       res.writeHead(404, { "Content-Type": "text/plain" });
       return res.end("Not found");
     }
-    const ext = path.extname(filePath);
-    res.writeHead(200, {
-      "Content-Type": MIME[ext] || "application/octet-stream",
-      "Cache-Control": "no-cache",
-    });
+    res.writeHead(200, { "Content-Type": MIME[path.extname(filePath)] || "application/octet-stream", "Cache-Control": "no-cache" });
     res.end(data);
   });
 }
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/api/state" && req.method === "GET") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify(doc));
+  // Nothing a request can contain should be able to take the server down
+  // for the whole house. Anything unexpected becomes a 500 for that request.
+  try {
+    if (req.url === "/api/state" && req.method === "GET") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(doc));
+    }
+    if (req.url === "/api/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, ...presence() }));
+    }
+    serveStatic(req, res);
+  } catch (e) {
+    console.error("Request failed:", e.message);
+    if (!res.headersSent) res.writeHead(500, { "Content-Type": "text/plain" });
+    res.end("Server error");
   }
-  if (req.url === "/api/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, clients: wss.clients.size }));
-  }
-  serveStatic(req, res);
 });
 
 const wss = new WebSocketServer({ server, path: "/ws" });
 
-function broadcastSync() {
-  const payload = JSON.stringify({ type: "sync", ...doc });
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) client.send(payload);
-  });
+function presence() {
+  let coaches = 0, students = 0;
+  wss.clients.forEach((c) => { if (c.readyState !== 1) return; if (c.role === "coach") coaches++; else if (c.role === "student") students++; });
+  return { coaches, students };
+}
+
+function broadcast(payload) {
+  const msg = JSON.stringify(payload);
+  wss.clients.forEach((client) => { if (client.readyState === 1) client.send(msg); });
+}
+const broadcastSync = () => broadcast({ type: "sync", ...doc });
+const broadcastPresence = () => broadcast({ type: "presence", ...presence() });
+
+/* Keep a slice only if it is at least as new as what we hold. */
+function accept(slice, incoming) {
+  if (!incoming || typeof incoming !== "object") return false;
+  const have = Number(doc[slice].updatedAt || 0);
+  const theirs = Number(incoming.updatedAt || 0);
+  if (theirs < have) return false;
+  doc[slice] = incoming;
+  return true;
 }
 
 wss.on("connection", (ws) => {
+  ws.role = null;
   ws.send(JSON.stringify({ type: "sync", ...doc }));
+  ws.send(JSON.stringify({ type: "presence", ...presence() }));
 
   ws.on("message", (raw) => {
-    if (raw.length > 200000) return; // sanity cap, not a real limit anyone should hit
-    let msg;
     try {
-      msg = JSON.parse(raw);
+      if (raw.length > 200000) return;
+      const msg = JSON.parse(raw);
+      if (!msg) return;
+      if (msg.type === "hello") {
+        ws.role = msg.role === "coach" || msg.role === "student" ? msg.role : null;
+        return broadcastPresence();
+      }
+      if (msg.type !== "update") return;
+      let changed = false;
+      if (accept("liveState", msg.liveState)) changed = true;
+      if (accept("progress", msg.progress)) changed = true;
+      if (changed) { persist(); broadcastSync(); }
+      else ws.send(JSON.stringify({ type: "sync", ...doc })); // they were stale — hand them the current truth
     } catch (e) {
-      return;
-    }
-    if (!msg || msg.type !== "update") return;
-    let changed = false;
-    if (msg.liveState && typeof msg.liveState === "object") {
-      doc.liveState = msg.liveState;
-      changed = true;
-    }
-    if (msg.progress && typeof msg.progress === "object") {
-      doc.progress = msg.progress;
-      changed = true;
-    }
-    if (changed) {
-      persist();
-      broadcastSync();
+      // a garbled message from one client is not everyone's problem
     }
   });
 
+  ws.on("close", broadcastPresence);
   ws.on("error", () => {});
 });
+
+process.on("uncaughtException", (e) => console.error("Uncaught:", e && e.stack || e));
 
 server.listen(PORT, () => {
   console.log(`The Reading Den server listening on :${PORT}`);

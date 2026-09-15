@@ -18,16 +18,17 @@
  */
 
 const BANDS = [
-  { id: "pink", label: "Pink", colour: "#f2a0b5", phase: "Phase 2", about: "First words. Mostly three-sound words like c-a-t, and a handful of tricky words." },
-  { id: "red", label: "Red", colour: "#e05c53", phase: "Phase 3", about: "Long vowel sounds written with two or three letters — rain, night, boat." },
-  { id: "yellow", label: "Yellow", colour: "#f0c249", phase: "Phase 4", about: "Longer words with sounds squashed together — jump, splash, stands." },
-  { id: "blue", label: "Blue", colour: "#5b9bd5", phase: "Phase 5", about: "New spellings for familiar sounds — snow, night, cake, found." },
+  { id: "pink", label: "Pink", colour: "#f2a0b5", level: 10, phase: "Phase 2", about: "First words. Mostly three-sound words like c-a-t, and the first tricky words." },
+  { id: "red", label: "Red", colour: "#e05c53", level: 14, phase: "Phase 3", about: "Long vowel sounds written with two or three letters — rain, night, boat." },
+  { id: "yellow", label: "Yellow", colour: "#f0c249", level: 16, phase: "Phase 4", about: "Sounds squashed together — jump, splash, train, sleep." },
+  { id: "blue", label: "Blue", colour: "#5b9bd5", level: 18, phase: "Phase 5 · Sets 1–2", about: "New spellings for sounds he knows — day, out, boy, bird, blue." },
+  { id: "orange", label: "Orange", colour: "#ec8b3c", level: 21, phase: "Phase 5 · Sets 3–5", about: "Split digraphs and letters with more than one sound — cake, snow, ice." },
 ];
 
 const STORIES = [
   /* ---------------------------- PINK ---------------------------- */
   {
-    id: "pip-mud", band: "pink", title: "Pip in the Mud",
+    id: "pip-mud", band: "pink", level: 10, title: "Pip in the Mud",
     blurb: "Pip the pug finds the muddiest puddle on the hill.",
     focus: ["u", "ll", "ss"],
     cover: { bg: "hill", alt: "A pug sitting on a grassy hill", items: [["pug", { x: 200, y: 205, s: 1.7 }]] },
@@ -45,7 +46,7 @@ const STORIES = [
     ],
   },
   {
-    id: "hen-fox", band: "pink", title: "The Hen and the Fox",
+    id: "hen-fox", band: "pink", level: 10, title: "The Hen and the Fox",
     blurb: "A fox wants to get into the shed. The hen has other plans.",
     focus: ["sh", "ng", "ff"],
     cover: { bg: "garden", alt: "A hen and a fox by a shed", items: [["shed", { x: 300, y: 195, s: 1 }], ["hen", { x: 130, y: 235, s: 1.5 }], ["fox", { x: 230, y: 245, s: 1.2, flip: true }]] },
@@ -63,7 +64,7 @@ const STORIES = [
     ],
   },
   {
-    id: "sam-fish", band: "pink", title: "Sam and the Big Fish",
+    id: "sam-fish", band: "pink", level: 9, title: "Sam and the Big Fish",
     blurb: "Sam has a net. The fish has a plan.",
     focus: ["ck", "qu", "sh"],
     cover: { bg: "water", alt: "A child on a rock with a net, and a big fish", items: [["rock", { x: 78, y: 168, s: 1.3 }], ["kid", { x: 78, y: 108, s: 1.05, shirt: "#f0913f" }], ["net", { x: 158, y: 138, s: 1.1 }], ["fish", { x: 300, y: 228, s: 1.6 }]] },
@@ -81,7 +82,7 @@ const STORIES = [
     ],
   },
   {
-    id: "red-sock", band: "pink", title: "The Red Sock",
+    id: "red-sock", band: "pink", level: 8, title: "The Red Sock",
     blurb: "Tom's sock is missing. Somebody in this house knows where it is.",
     focus: ["ck", "x", "e"],
     cover: { bg: "indoor", alt: "A red sock on a wooden floor", items: [["sock", { x: 200, y: 190, s: 2.2 }]] },
@@ -101,7 +102,7 @@ const STORIES = [
 
   /* ---------------------------- RED ---------------------------- */
   {
-    id: "pip-rain", band: "red", title: "Pip and the Rain",
+    id: "pip-rain", band: "red", level: 12, title: "Pip and the Rain",
     blurb: "Pip is out in the sun when the rain comes. Who else is hiding in the shed?",
     focus: ["ai", "ar", "oo"],
     cover: { bg: "outdoor", alt: "Pip the pug in the rain", items: [["pug", { x: 200, y: 220, s: 1.6 }], ["rain", { x: 200, y: 110, s: 1.3 }]] },
@@ -114,12 +115,12 @@ const STORIES = [
         scene: { bg: "outdoor", alt: "Pip running to a shed in the rain", items: [["rain", { x: 130, y: 110, s: 1.1 }], ["shed", { x: 290, y: 195, s: 1.1 }], ["pug", { x: 140, y: 230, s: 1.2 }]] } },
       { text: "A cat is in the shed too!", tricky: ["is", "the"],
         scene: { bg: "outdoor", alt: "A cat already sheltering in the shed", items: [["shed", { x: 210, y: 190, s: 1.3 }], ["cat", { x: 210, y: 232, s: 1.1 }]] } },
-      { text: "Pip and the cat wait for the sun.", tricky: ["the"],
+      { text: "Pip and the cat wait for the sun.", tricky: ["and", "the"],
         scene: { bg: "outdoor", alt: "Pip and the cat waiting together", items: [["shed", { x: 220, y: 190, s: 1.2 }], ["pug", { x: 160, y: 235, s: 1.1 }], ["cat", { x: 255, y: 238, s: 1 }], ["sun", { x: 350, y: 55, s: .8 }]] } },
     ],
   },
   {
-    id: "meg-coin", band: "red", title: "Meg and the Coin",
+    id: "meg-coin", band: "red", level: 14, title: "Meg and the Coin",
     blurb: "Meg drops her coin in the pool. A fish decides to help.",
     focus: ["oi", "ee", "ear"],
     cover: { bg: "water", alt: "A gold coin sinking in blue water", items: [["coin", { x: 200, y: 190, s: 2.4 }], ["fish", { x: 300, y: 235, s: 1.1 }]] },
@@ -137,7 +138,7 @@ const STORIES = [
     ],
   },
   {
-    id: "cat-dark", band: "red", title: "The Cat in the Dark",
+    id: "cat-dark", band: "red", level: 13, title: "The Cat in the Dark",
     blurb: "It is late, and a cat is a long way from home.",
     focus: ["igh", "oo", "ow"],
     cover: { bg: "night", alt: "A cat under a big moon", items: [["moon", { x: 320, y: 60, s: 1.1 }], ["cat", { x: 180, y: 240, s: 1.6 }]] },
@@ -157,7 +158,7 @@ const STORIES = [
 
   /* ---------------------------- YELLOW ---------------------------- */
   {
-    id: "ben-ducks", band: "yellow", title: "Ben and the Ducks",
+    id: "ben-ducks", band: "yellow", level: 16, title: "Ben and the Ducks",
     blurb: "Ben brings a bag of crusts to the pond. The ducks are ready.",
     focus: ["-nd", "-mp", "spl"],
     cover: { bg: "water", alt: "Ducks crowding round a child at a pond", items: [["kid", { x: 80, y: 110, s: 1.05, shirt: "#5aa85f" }], ["duck", { x: 230, y: 212, s: 1.25 }], ["duck", { x: 320, y: 240, s: 1.1 }]] },
@@ -175,7 +176,7 @@ const STORIES = [
     ],
   },
   {
-    id: "big-wind", band: "yellow", title: "The Big Wind",
+    id: "big-wind", band: "yellow", level: 16, title: "The Big Wind",
     blurb: "Tom's hat goes up, and up, and up.",
     focus: ["-st", "-nk", "tr"],
     cover: { bg: "hill", alt: "A purple hat blowing away over a hill", items: [["hat", { x: 250, y: 110, s: 1.8 }], ["kid", { x: 120, y: 200, s: 1, shirt: "#f0913f" }]] },
@@ -195,7 +196,45 @@ const STORIES = [
 
   /* ---------------------------- BLUE ---------------------------- */
   {
-    id: "cake-gran", band: "blue", title: "A Cake for Gran",
+    id: "roy-boat", band: "blue", level: 18, title: "Roy and the Toy Boat",
+    blurb: "Roy's blue boat has gone missing. A duck knows where.",
+    focus: ["oy", "ue", "-nd"],
+    cover: { bg: "garden", alt: "A boy holding a small blue boat", items: [["kid", { x: 150, y: 165, s: 1.15, shirt: "#5b9bd5" }], ["boat", { x: 270, y: 215, s: .7 }]] },
+    pages: [
+      { text: "Roy had a toy boat. It was blue.", tricky: ["was"],
+        scene: { bg: "indoor", alt: "Roy with his blue toy boat", items: [["kid", { x: 140, y: 165, s: 1.1, shirt: "#5b9bd5" }], ["boat", { x: 270, y: 212, s: .75 }]] } },
+      { text: "One day the boat was not in the toy box.", tricky: ["one", "the", "was"],
+        scene: { bg: "indoor", alt: "An empty toy box", items: [["box", { x: 200, y: 200, s: 1.7 }], ["kid", { x: 90, y: 165, s: 1, shirt: "#5b9bd5" }]] } },
+      { text: "Roy went out to look in the garden.", tricky: ["to", "the"],
+        scene: { bg: "garden", alt: "Roy searching the garden", items: [["kid", { x: 160, y: 165, s: 1.15, shirt: "#5b9bd5" }], ["flowers", { x: 300, y: 240, s: 1.2 }], ["tree", { x: 340, y: 195, s: .8 }]] } },
+      { text: "There it was, in the pond! A duck sat on it!", tricky: ["there", "was", "the"],
+        scene: { bg: "water", alt: "The toy boat in a pond with a duck sitting on it", items: [["boat", { x: 210, y: 210, s: .9 }], ["duck", { x: 210, y: 172, s: .95 }], ["kid", { x: 70, y: 110, s: 1, shirt: "#5b9bd5" }]] } },
+      { text: "Off went the duck. Roy had his boat back. Hooray!", tricky: ["the", "his"],
+        scene: { bg: "garden", alt: "Roy holding his boat again, the duck flying off", items: [["kid", { x: 150, y: 165, s: 1.15, shirt: "#5b9bd5" }], ["boat", { x: 235, y: 215, s: .7 }], ["duck", { x: 330, y: 110, s: .8, flip: true }]] } },
+    ],
+  },
+  {
+    id: "dads-birthday", band: "blue", level: 18, title: "A Card for Dad",
+    blurb: "It is Dad's birthday, and Meg has a plan involving a lot of paint.",
+    focus: ["ir", "ai", "ow"],
+    cover: { bg: "indoor", alt: "A painted card with a boat on it", items: [["box", { x: 200, y: 205, s: 1.5 }], ["boat", { x: 200, y: 165, s: .6 }]] },
+    pages: [
+      { text: "It was Dad’s birthday. Meg had a plan.", tricky: ["was"],
+        scene: { bg: "indoor", alt: "Meg thinking hard", items: [["kid", { x: 200, y: 165, s: 1.2, long: true, shirt: "#9b7fd4" }]] } },
+      { text: "She got out the paint. Red, green and blue.", tricky: ["she", "the"],
+        scene: { bg: "indoor", alt: "Pots of red, green and blue paint", items: [["bowl", { x: 120, y: 210, s: 1.2, c: "#e05c53" }], ["bowl", { x: 200, y: 210, s: 1.2, c: "#5aa85f" }], ["bowl", { x: 280, y: 210, s: 1.2, c: "#5b9bd5" }]] } },
+      { text: "Meg painted a big boat on a card.", tricky: [],
+        scene: { bg: "indoor", alt: "Meg painting a boat", items: [["kid", { x: 120, y: 165, s: 1.1, long: true, shirt: "#9b7fd4" }], ["boat", { x: 260, y: 200, s: .8 }]] } },
+      { text: "Then she put it in a big brown box.", tricky: ["she", "put"],
+        scene: { bg: "indoor", alt: "The card going into a brown box", items: [["box", { x: 200, y: 200, s: 1.7 }], ["kid", { x: 90, y: 165, s: 1, long: true, shirt: "#9b7fd4" }]] } },
+      { text: "Dad said, “Wow! A boat! Thank you, Meg!”", tricky: ["said", "you"],
+        scene: { bg: "indoor", alt: "Dad delighted with his card", items: [["kid", { x: 140, y: 160, s: 1.3, shirt: "#e05c53" }], ["kid", { x: 260, y: 170, s: 1.05, long: true, shirt: "#9b7fd4" }], ["boat", { x: 200, y: 215, s: .6 }]] } },
+    ],
+  },
+
+  /* ---------------------------- ORANGE ---------------------------- */
+  {
+    id: "cake-gran", band: "orange", level: 21, title: "A Cake for Gran",
     blurb: "Nell makes a birthday cake, and gives away the best bit.",
     focus: ["a-e", "i-e", "ir"],
     cover: { bg: "indoor", alt: "A birthday cake with a candle", items: [["cake", { x: 200, y: 195, s: 2.2 }]] },
@@ -204,8 +243,8 @@ const STORIES = [
         scene: { bg: "indoor", alt: "A kitchen ready for baking", items: [["kid", { x: 145, y: 165, s: 1.1, long: true, shirt: "#f2a0b5" }], ["bowl", { x: 250, y: 205, s: 1.4 }]] } },
       { text: "Nell and Mum made a cake.", tricky: [],
         scene: { bg: "indoor", alt: "Nell and Mum mixing a cake", items: [["kid", { x: 120, y: 170, s: 1.05, long: true, shirt: "#f2a0b5" }], ["kid", { x: 205, y: 158, s: 1.2, long: true, shirt: "#4fb8a8" }], ["bowl", { x: 300, y: 205, s: 1.3 }]] } },
-      { text: "They put nine candles on top.", tricky: ["they", "put"],
-        scene: { bg: "indoor", alt: "A cake with candles on it", items: [["cake", { x: 200, y: 200, s: 1.9 }]] } },
+      { text: "They put nine sweets on top.", tricky: ["they", "put"],
+        scene: { bg: "indoor", alt: "A cake with sweets on top", items: [["cake", { x: 200, y: 200, s: 1.9 }]] } },
       { text: "Gran came in. “Oh! What a cake!” she said.", tricky: ["oh", "what", "said", "she"],
         scene: { bg: "indoor", alt: "Gran delighted by the cake", items: [["kid", { x: 130, y: 165, s: 1.25, long: true, shirt: "#9b7fd4" }], ["cake", { x: 265, y: 200, s: 1.4 }]] } },
       { text: "Nell gave Gran the first slice.", tricky: ["the"],
@@ -213,7 +252,7 @@ const STORIES = [
     ],
   },
   {
-    id: "snow-day", band: "blue", title: "Snow Day",
+    id: "snow-day", band: "orange", level: 21, title: "Snow Day",
     blurb: "Deep snow, a huge snowman, and hot toast at the end of it.",
     focus: ["ow", "oe", "ou"],
     cover: { bg: "snow", alt: "A snowman in deep snow", items: [["snowman", { x: 200, y: 215, s: 1.5 }]] },

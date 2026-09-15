@@ -1,4 +1,5 @@
-/* The reader portal shell: sidebar, level chips, directions, sticker sender. */
+/* The reader portal shell: sidebar, level chips, directions, sticker sender,
+ * the "practise next" strip, and an honest connection pill. */
 
 function rerender() { render(); }
 
@@ -7,21 +8,14 @@ function renderSidebar(s) {
   nav.innerHTML = "";
   ACTIVITY_ORDER.forEach((key) => {
     const a = ACTIVITIES[key];
-    nav.appendChild(el("button", {
-      class: "navitem" + (s.activity === key ? " active" : ""),
-      onclick: () => saveState({ activity: key, tab: (a.tabs && a.tabs[0].id) || null }),
-    }, [el("span", { class: "navicon", text: a.icon }), el("span", { text: a.label })]));
+    nav.appendChild(el("button", { class: "navitem" + (s.activity === key ? " active" : ""),
+      onclick: () => saveState({ activity: key, tab: (a.tabs && a.tabs[0].id) || null }) },
+      [el("span", { class: "navicon", text: a.icon }), el("span", { text: a.label })]));
   });
-  nav.appendChild(el("button", {
-    class: "stickerbtn", onclick: openStickers,
-  }, [el("span", { class: "sticker-top", text: "SEND A" }), el("span", { class: "sticker-word", text: "Sticker" })]));
-
-  // On narrow screens the sidebar is a horizontal strip, so keep whatever
-  // is selected actually visible rather than scrolled off to the left.
+  nav.appendChild(el("button", { class: "stickerbtn", onclick: openStickers },
+    [el("span", { class: "sticker-top", text: "SEND A" }), el("span", { class: "sticker-word", text: "Sticker" })]));
   const active = nav.querySelector(".navitem.active");
-  if (active && window.matchMedia("(max-width: 860px)").matches) {
-    active.scrollIntoView({ block: "nearest", inline: "center" });
-  }
+  if (active && window.matchMedia("(max-width: 860px)").matches) active.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
 function renderTabs(s, a) {
@@ -29,17 +23,11 @@ function renderTabs(s, a) {
   host.innerHTML = "";
   if (!a.tabs) { host.hidden = true; return; }
   host.hidden = false;
-  a.tabs.forEach((t) => {
-    host.appendChild(el("button", {
-      class: "tab" + (s.tab === t.id ? " active" : ""),
-      text: t.label,
-      onclick: () => saveState({ tab: t.id }),
-    }));
-  });
+  a.tabs.forEach((t) => host.appendChild(el("button", { class: "tab" + (s.tab === t.id ? " active" : ""), text: t.label, onclick: () => saveState({ tab: t.id }) })));
 }
 
 function currentDirections(s, a) {
-  let d = a.directions;
+  const d = a.directions;
   if (!d) return null;
   if (Array.isArray(d)) return d;
   if (s.activity === "stories") return s.story.id ? d.read : d.list;
@@ -52,16 +40,37 @@ function renderDirections(s, a) {
   if (!lines || !s.showDirections) { host.hidden = true; return; }
   host.hidden = false;
   host.innerHTML = "";
-  host.appendChild(el("div", { class: "dir-head" }, [
-    el("strong", { text: a.label + " · how to run it" }),
-    el("button", { class: "dir-close", text: "✕", title: "Hide directions",
-      onclick: () => saveState({ showDirections: false }) }),
-  ]));
+  host.appendChild(el("div", { class: "dir-head" }, [el("strong", { text: a.label + " · how to run it" }),
+    el("button", { class: "dir-close", text: "✕", title: "Hide directions", onclick: () => saveState({ showDirections: false }) })]));
   host.appendChild(el("ul", {}, lines.map((l) => el("li", { html: l }))));
 }
 
+/* What to practise next: sounds and tricky words up to his level that were
+ * marked ✗ (most recent first), then ones never tried at the current unit. */
+function renderPractise(s) {
+  const host = document.getElementById("practise");
+  host.innerHTML = "";
+  if (s.activity !== "flashcards") { host.hidden = true; return; }
+  const kind = s.tab === "tricky" ? "tricky" : "sounds";
+  const items = kind === "tricky" ? trickyUpTo(s.level) : soundsUpTo(s.level);
+  const unit = unitData(s.level);
+  const current = kind === "tricky" ? unit.tricky : unit.sounds;
+  const needs = items.filter((g) => verdictOf(kind, g) === "no").sort((a, b) => verdictWhen(kind, b) - verdictWhen(kind, a));
+  const untried = current.filter((g) => !verdictOf(kind, g));
+  const got = items.filter((g) => verdictOf(kind, g) === "yes").length;
+  if (!needs.length && !untried.length && !items.length) { host.hidden = true; return; }
+  host.hidden = false;
+  const chip = (g) => el("button", { class: "pr-chip", text: gpcLabel(g),
+    onclick: () => saveSub("fc", kind === "tricky" ? { tricky: g } : { sound: g, word: null }) });
+  host.appendChild(el("span", { class: "pr-label", text: `${got} of ${items.length} ${kind === "tricky" ? "tricky words" : "sounds"} marked ✓` }));
+  if (needs.length) host.appendChild(el("span", { class: "pr-group" }, [el("span", { class: "pr-title", text: "Needs another look:" }), ...needs.map(chip)]));
+  if (untried.length) host.appendChild(el("span", { class: "pr-group" }, [el("span", { class: "pr-title", text: "Not tried yet this level:" }), ...untried.map(chip)]));
+}
+
 function renderChips(s) {
+  const u = unitData(s.level);
   document.getElementById("lc-level").textContent = s.level;
+  document.getElementById("lc-level-sub").textContent = `Phase ${u.phase} · ${u.label}`;
   const b = bandData(s.band);
   const tag = document.getElementById("lc-band");
   tag.textContent = b.label;
@@ -71,79 +80,88 @@ function renderChips(s) {
 function openModal(title, body, note) {
   const card = document.getElementById("modal-card");
   card.innerHTML = "";
-  card.appendChild(el("div", { class: "modal-head" }, [
-    el("h3", { text: title }),
-    el("button", { class: "dir-close", text: "✕", onclick: closeModal }),
-  ]));
+  card.appendChild(el("div", { class: "modal-head" }, [el("h3", { text: title }), el("button", { class: "dir-close", text: "✕", onclick: closeModal })]));
   card.appendChild(body);
   if (note) card.appendChild(el("p", { class: "modal-note", html: note }));
   document.getElementById("modal").hidden = false;
 }
 function closeModal() { document.getElementById("modal").hidden = true; }
 
+/* Everything that depends on the level is reset when it changes — including
+ * the 3 in a Row marks, which used to survive and sit over a new board. */
+function setLevel(n) {
+  saveState({
+    level: n,
+    fc: { sound: null, word: null, tricky: null, buttons: false },
+    sort: { round: 0, placed: {} },
+    tir: { round: 0, marks: [null, null, null, null, null, null, null, null, null] },
+    myst: { word: null, guessed: [], seed: 0 },
+    wheel: { round: 0, onset: 0 },
+  });
+}
+
 function openLevelPicker() {
   const s = loadState();
-  const body = el("div", { class: "levelopts" }, LEVELS.map((l) =>
-    el("button", {
-      class: "levelopt" + (s.level === l.n ? " active" : ""),
-      onclick: () => { saveState({ level: l.n, fc: { sound: null, word: null, tricky: null }, sort: { round: 0, placed: {} }, myst: { word: null, guessed: [], seed: 0 }, wheel: { round: 0, onset: 0 } }); closeModal(); },
-    }, [
-      el("span", { class: "lo-n", text: l.n }),
+  const body = el("div", { class: "levelopts" });
+  let lastPhase = null;
+  UNITS.forEach((u) => {
+    if (u.phase !== lastPhase) {
+      lastPhase = u.phase;
+      body.appendChild(el("div", { class: "levelgroup", text: `Phase ${u.phase}` }));
+    }
+    body.appendChild(el("button", { class: "levelopt" + (s.level === u.n ? " active" : ""), onclick: () => { setLevel(u.n); closeModal(); } }, [
+      el("span", { class: "lo-n", text: u.n }),
       el("span", {}, [
-        el("strong", { text: `${l.phase} · ${l.term}` }),
-        el("span", { class: "lo-blurb", text: l.blurb }),
-        el("span", { class: "lo-sounds", text: l.newSounds.length ? l.newSounds.join("  ") : "No new sounds — adjacent consonants" }),
+        el("strong", { text: `${u.term} · ${u.label}` }),
+        el("span", { class: "lo-sounds", text: u.sounds.length ? u.sounds.map(gpcLabel).join("  ") : u.note || "" }),
+        u.sounds.length && u.note ? el("span", { class: "lo-blurb", text: u.note }) : null,
+        u.tricky.length ? el("span", { class: "lo-tricky", text: "Tricky: " + u.tricky.join(", ") }) : null,
       ]),
-    ])
-  ));
+    ]));
+  });
   openModal("Activity Level", body,
-    "Drives flashcards and games. Follows the published Little Wandle Reception/Year&nbsp;1 order — four new sounds a week. Move it whenever school does.");
+    "Drives flashcards and games. Each level is one of Little Wandle's own teaching units — a Reception week or a Year&nbsp;1 set — in the published order. Move it up whenever school does; move it down if he's finding a set hard.");
 }
 
 function openBandPicker() {
   const s = loadState();
-  const body = el("div", { class: "levelopts" }, BANDS.map((b) =>
-    el("button", {
-      class: "levelopt" + (s.band === b.id ? " active" : ""),
-      onclick: () => { saveState({ band: b.id, story: { id: null, page: 0, hl: null } }); closeModal(); },
-    }, [
+  const body = el("div", { class: "levelopts" }, BANDS.map((b) => {
+    const books = storiesForBand(b.id);
+    return el("button", { class: "levelopt" + (s.band === b.id ? " active" : ""), onclick: () => { saveState({ band: b.id, story: { id: null, page: 0, hl: null } }); closeModal(); } }, [
       el("span", { class: "lo-band", style: `background:${b.colour}` }),
       el("span", {}, [
-        el("strong", { text: `${b.label} band · ${b.phase}` }),
+        el("strong", { text: `${b.label} · sounds up to Level ${b.level} · ${b.phase}` }),
         el("span", { class: "lo-blurb", text: b.about }),
-        el("span", { class: "lo-sounds", text: `${storiesForBand(b.id).length} books` }),
+        el("span", { class: "lo-sounds", text: books.map((st) => `${st.title} (L${st.level})`).join(" · ") || "no books yet" }),
       ]),
-    ])
-  ));
+    ]);
+  }));
   openModal("Story Level", body,
-    "Book-band colours are what most schools use, but they are <strong>not</strong> an official Little&nbsp;Wandle thing — Little Wandle itself labels books by Phase and Set, and Collins prints “Phase 4 Set 2” on the back rather than a colour. Treat the colour as a rough guide and go by what comes home in his book bag.");
+    "Each band's books use only sounds taught by the level shown, and every book card shows its own exact level. The colour names are the ones schools use, but they are <strong>not</strong> an official Little&nbsp;Wandle thing — Little Wandle and Collins label books by Phase and Set. Treat the colour as a rough guide and the level as the fact.");
 }
 
 function openStickers() {
-  const body = el("div", { class: "stickergrid" }, STICKERS.map((emoji) =>
-    el("button", { class: "stickeropt", text: emoji, onclick: () => { sendSticker(emoji); closeModal(); } })
-  ));
+  const body = el("div", { class: "stickergrid" }, STICKERS.map((emoji) => el("button", { class: "stickeropt", text: emoji, onclick: () => { sendSticker(emoji); closeModal(); } })));
   openModal("Send a sticker", body, "It pops up big on his screen for a few seconds. Worth saving for something he found hard.");
+}
+
+function renderPill() {
+  const pill = document.getElementById("syncpill");
+  const p = getPresence();
+  if (!isSynced()) { pill.textContent = "● No server — this screen only"; pill.className = "syncpill"; }
+  else if (p.students > 0) { pill.textContent = `● His screen is connected`; pill.className = "syncpill on"; }
+  else { pill.textContent = "● Server on · his screen isn't open"; pill.className = "syncpill warn"; }
 }
 
 function render() {
   const s = loadState();
   const a = ACTIVITIES[s.activity] || ACTIVITIES.flashcards;
-  renderSidebar(s);
-  renderTabs(s, a);
-  renderChips(s);
-  renderDirections(s, a);
-
-  const dirBtn = document.getElementById("directions-toggle");
-  dirBtn.textContent = s.showDirections ? "Hide directions" : "Directions";
-
+  renderSidebar(s); renderTabs(s, a); renderChips(s); renderDirections(s, a); renderPractise(s);
+  document.getElementById("directions-toggle").textContent = s.showDirections ? "Hide directions" : "Directions";
   const stage = document.getElementById("stage");
   stage.innerHTML = "";
   a.render(stage, "coach");
-
-  const pill = document.getElementById("syncpill");
-  pill.textContent = isSynced() ? "● Synced to his screen" : "● This device only";
-  pill.className = "syncpill" + (isSynced() ? " on" : "");
+  renderPill();
 }
 
 document.getElementById("directions-toggle").onclick = () => saveState({ showDirections: !loadState().showDirections });
@@ -153,6 +171,6 @@ document.getElementById("modal").onclick = (e) => { if (e.target.id === "modal")
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
 
 window.addEventListener("rd-change", render);
-window.addEventListener("rd-sync", render);
+window.addEventListener("rd-sync", renderPill);
 window.addEventListener("storage", render);
 render();
