@@ -31,7 +31,7 @@ something he found hard.
 
 Thirteen proper little books, not practice sentences: a title, a cover, a
 cast, and a beginning/middle/end over five pages. Pip the pug turns up in
-three of them, which for a four-year-old is most of the appeal.
+two of them, which for a four-year-old is most of the appeal.
 
 Every book carries an exact **Activity Level** — the highest teaching unit
 any of its words needs — and its card says so. That's checked, not eyeballed:
