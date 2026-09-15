@@ -141,17 +141,18 @@ a { color: inherit; }
 
 .levelbar {
   background: var(--plum); color: #fff; padding: 12px 22px;
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
-.levelbar-links { display: flex; gap: 18px; padding-top: 6px; }
-.levelchips { display: flex; gap: 10px; margin-top: -22px; }
+.levelbar-links { display: flex; gap: 18px; }
+.levelchips { display: flex; gap: 10px; align-items: stretch; }
 .levelchip {
   background: var(--amber); border: none; border-radius: 12px; cursor: pointer;
   padding: 9px 16px 11px; text-align: center; color: #2f2411; min-width: 118px;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; align-content: center;
   box-shadow: 0 3px 0 var(--amber-deep);
 }
 .levelchip:hover { background: #ffd158; }
-.lc-label { display: block; font-size: .74rem; font-weight: 600; opacity: .8; }
+.lc-label { display: block; flex-basis: 100%; font-size: .74rem; font-weight: 600; opacity: .8; }
 .lc-value { display: inline-block; font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
 .lc-pencil { margin-left: 6px; opacity: .55; font-size: .95rem; }
 .bandtag {
@@ -249,7 +250,7 @@ a { color: inherit; }
 .secretpeek-note { font-size: .82rem; opacity: .75; }
 
 .syncpill.warn { color: #9a6b00; border-color: #f0d68a; background: #fff6dc; }
-.lc-sub { display: block; font-size: .7rem; opacity: .75; margin-top: 2px; font-weight: 600; }
+.lc-sub { display: block; flex-basis: 100%; font-size: .7rem; opacity: .75; margin-top: 2px; font-weight: 600; }
 .panel-note { display: block; font-family: var(--ui); font-size: .78rem; color: var(--ink-soft); font-weight: 500; margin-top: 2px; }
 .tile-sub { display: block; font-family: var(--ui); font-size: .62rem; opacity: .7; font-weight: 500; }
 .tile { flex-direction: column; gap: 1px; line-height: 1.15; }
@@ -572,7 +573,6 @@ body.landing { background: linear-gradient(170deg, #f7f4fc, #eef4f9); }
   .spread { grid-template-columns: 1fr; }
   .spread-text { border-left: none; border-top: 1px solid var(--line); }
   .land-cards, .land-grid { grid-template-columns: 1fr; }
-  .levelchips { margin-top: 0; }
   .stage { padding: 16px 14px 0; }
   .directions { margin: 14px 14px 0; }
   .tabs { padding: 0 14px; }
