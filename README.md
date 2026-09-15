@@ -97,12 +97,15 @@ blindly winning.
 UGOS (the UGREEN NAS OS) has no built-in static-site host, so this runs as a
 small Docker container: `server/` is a tiny Node server (one dependency) that
 serves the site *and* keeps every screen in sync over a WebSocket.
-`deploy/docker-compose.yml` builds and runs it.
+`deploy/docker-compose.yaml` builds and runs it.
 
-The compose file mounts the folder it lives in, so the app can sit
+The compose file is `deploy/docker-compose.yaml` — the `.yaml` spelling
+because that's the name the UGOS Docker app's Project view creates and reads;
+keep only that one file in `deploy/`, since compose warns and picks
+arbitrarily when both spellings exist. It mounts the folder it lives in, so the app can sit
 anywhere on the NAS — currently **`/volume2/appdata/Reading Den`** — and be
 moved without editing anything. It serves on **port 8000**, which is the
-one thing in `deploy/docker-compose.yml` you might want to change.
+one thing in `deploy/docker-compose.yaml` you might want to change.
 
 1. **Copy the folder to `/volume2/appdata/Reading Den`** — easiest is to map
    the NAS as a network drive and drag it over. Keep the folder structure
@@ -110,7 +113,7 @@ one thing in `deploy/docker-compose.yml` you might want to change.
 2. **App Center → Docker → Install** (current DXP / DH4300 Plus models
    support it; the entry-level DH2300 doesn't).
 3. **Docker → Project**, point it at
-   `/volume2/appdata/Reading Den/deploy/docker-compose.yml`.
+   `/volume2/appdata/Reading Den/deploy/docker-compose.yaml`.
    If the Project UI won't handle the `build:` section, enable SSH
    (Control Panel → Terminal) and run `docker compose up -d --build` once
    from the `deploy` folder instead.
@@ -152,7 +155,7 @@ Then, only if certain files changed:
 | What changed | What to do |
 |---|---|
 | Anything in `assets/`, any `.html`, stories, artwork | Nothing. Refresh the browser. |
-| `deploy/docker-compose.yml` (port, paths) | Recreate the container — `docker compose up -d` |
+| `deploy/docker-compose.yaml` (port, paths) | Recreate the container — `docker compose up -d` |
 | `server/server.js`, `server/package.json`, `server/Dockerfile` | Rebuild the image — `docker compose up -d --build` |
 
 The server is *not* bind-mounted — it's baked into the image — so a changed
@@ -280,7 +283,7 @@ server/server.js                    static server + sync (http + ws, nothing els
 tools/check-content.js              validates every word, sort, wheel, story and tricky mark against its level
 tools/check-determinism.js          guards that both screens compute the same thing
 tools/segment.js                    helper for adding words to the bank (draft segmentation, then review by hand)
-deploy/docker-compose.yml           NAS deployment
+deploy/docker-compose.yaml           NAS deployment
 ```
 
 ---
