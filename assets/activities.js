@@ -132,6 +132,15 @@ const flashcards = {
       host.appendChild(sel ? trickyWordEl(sel) : emptyMsg("Ready when you are!"));
       return;
     }
+    if (!words.length) {
+      // Little Wandle's first tricky word is "is" in Reception Week 3, so
+      // Levels 1–2 have none — say so rather than point at an empty list.
+      const next = UNITS.find((u) => u.n > s.level && u.tricky.length);
+      host.appendChild(notEnough(next
+        ? `No tricky words yet at Level ${s.level} — the first one (${next.tricky.join(", ")}) arrives at Level ${next.n}, ${next.term} ${next.label}. Every word he meets so far can be sounded out.`
+        : "No tricky words at this level."));
+      return;
+    }
     const panel = el("div", { class: "panel" });
     if (sel) {
       panel.appendChild(trickyWordEl(sel, "panel-big"));
