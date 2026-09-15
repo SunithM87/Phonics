@@ -79,6 +79,9 @@ actually true, not just whether *your* screen reached the server:
 - **● Server on · his screen isn't open** — you're synced but nothing will
   appear anywhere until his screen is open.
 - **● No server — this screen only** — still perfectly usable on one screen.
+- **● Synced · server needs rebuilding** — the site files are newer than the
+  server container. Everything still syncs, but the server can't say who's
+  connected until you rebuild it (see *Updating* below).
 
 His screen has the same three states in miniature at the top.
 
@@ -150,6 +153,13 @@ Then, only if certain files changed:
 | Anything in `assets/`, any `.html`, stories, artwork | Nothing. Refresh the browser. |
 | `deploy/docker-compose.yml` (port, paths) | Recreate the container — `docker compose up -d` |
 | `server/server.js`, `server/package.json`, `server/Dockerfile` | Rebuild the image — `docker compose up -d --build` |
+
+The server is *not* bind-mounted — it's baked into the image — so a changed
+`server.js` needs that rebuild even though every other file goes live on
+copy. The portal tells you when this has happened: the top-right pill reads
+**● Synced · server needs rebuilding** until the container is rebuilt.
+`http://<nas-ip>:8000/api/health` is the other tell — an up-to-date server
+answers with `coaches` and `students` counts, an old one with just `ok`.
 
 Those last two over SSH (Control Panel → Terminal), noting the quotes —
 the path has a space in it:

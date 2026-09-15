@@ -124,10 +124,14 @@ let ws = null;
 let connected = false;
 let backoff = 1000;
 let presence = { coaches: 0, students: 0 };
+let presenceKnown = false; // false until the server has told us who's connected
 const dirty = { liveState: false, progress: false };
 
 function isSynced() { return connected; }
 function getPresence() { return presence; }
+/* An old server (before presence tracking) never answers the hello, so the
+ * client can't know who's connected — and must say so rather than guess. */
+function serverOutOfDate() { return connected && !presenceKnown; }
 
 function push(slice, value) {
   if (ws && ws.readyState === 1) {
@@ -166,12 +170,16 @@ function connect() {
     if (dirty.liveState) { ws.send(JSON.stringify({ type: "update", liveState: loadState() })); dirty.liveState = false; }
     if (dirty.progress) { ws.send(JSON.stringify({ type: "update", progress: loadProgress() })); dirty.progress = false; }
     setConn(true);
+    // the new server answers hello with presence at once; give it a moment,
+    // then re-render so an old server shows up as out of date
+    setTimeout(() => { if (!presenceKnown) window.dispatchEvent(new CustomEvent("rd-sync", { detail: { connected, presence } })); }, 1500);
   };
   ws.onmessage = (ev) => {
     let m;
     try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (m.type === "presence") {
       presence = { coaches: m.coaches || 0, students: m.students || 0 };
+      presenceKnown = true;
       window.dispatchEvent(new CustomEvent("rd-sync", { detail: { connected, presence } }));
       return;
     }
@@ -180,6 +188,7 @@ function connect() {
     applySlice("progress", m.progress);
   };
   ws.onclose = () => {
+    presenceKnown = false;
     setConn(false);
     setTimeout(connect, backoff);
     backoff = Math.min(backoff * 1.6, 15000);

@@ -20,6 +20,7 @@ function renderPill() {
   const pill = document.getElementById("stu-sync");
   const p = getPresence();
   if (!isSynced()) { pill.textContent = "not connected"; pill.className = "stu-pill"; }
+  else if (serverOutOfDate()) { pill.textContent = "● connected"; pill.className = "stu-pill on"; }
   else if (p.coaches > 0) { pill.textContent = "● connected"; pill.className = "stu-pill on"; }
   else { pill.textContent = "● waiting for the grown-up's screen"; pill.className = "stu-pill warn"; }
 }
