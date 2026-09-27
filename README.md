@@ -79,9 +79,9 @@ actually true, not just whether *your* screen reached the server:
 - **● Server on · his screen isn't open** — you're synced but nothing will
   appear anywhere until his screen is open.
 - **● No server — this screen only** — still perfectly usable on one screen.
-- **● Synced · server needs rebuilding** — the site files are newer than the
-  server container. Everything still syncs, but the server can't say who's
-  connected until you rebuild it (see *Updating* below).
+- **● Synced · server out of date** — the server is an older version than
+  the page. Everything still syncs, but it can't say who's connected until
+  you restart the container (see *Updating* below).
 
 His screen has the same three states in miniature at the top.
 
@@ -94,35 +94,27 @@ blindly winning.
 
 ## Hosting it on a NAS
 
-UGOS (the UGREEN NAS OS) has no built-in static-site host, so this runs as a
-small Docker container: `server/` is a tiny Node server (one dependency) that
-serves the site *and* keeps every screen in sync over a WebSocket.
-`deploy/docker-compose.yaml` builds and runs it.
+It runs as one small Docker container: a tiny Node server that serves the
+app *and* keeps every screen in sync over a WebSocket. The container keeps
+itself up to date. **Every time it starts, it downloads the latest version
+of the app from GitHub** and serves that, so updating means restarting it
+(see *Updating*). If GitHub can't be reached, it serves the last version
+it downloaded.
 
-The compose file is `deploy/docker-compose.yaml` — the `.yaml` spelling
-because that's the name the UGOS Docker app's Project view creates and reads;
-keep only that one file in `deploy/`, since compose warns and picks
-arbitrarily when both spellings exist. It mounts the folder it lives in, so the app can sit
-anywhere on the NAS — currently **`/volume2/appdata/Reading Den`** — and be
-moved without editing anything. It serves on **port 8000**, which is the
-one thing in `deploy/docker-compose.yaml` you might want to change.
+Nothing needs copying to the NAS. The only folder it uses is
+**`/volume2/appdata/Reading Den/deploy/data`**, which holds his progress
+(`state.json`) plus the downloaded copy of the app.
 
-1. **Copy the folder to `/volume2/appdata/Reading Den`** — easiest is to map
-   the NAS as a network drive and drag it over. Keep the folder structure
-   as-is; `deploy/data` is created automatically on first run.
-2. **App Center → Docker → Install** (current DXP / DH4300 Plus models
+1. **App Center → Docker → Install** (current DXP / DH4300 Plus models
    support it; the entry-level DH2300 doesn't).
-3. **Docker → Project**, point it at
-   `/volume2/appdata/Reading Den/deploy/docker-compose.yaml`.
-   If the Project UI won't handle the `build:` section, enable SSH
-   (Control Panel → Terminal) and run `docker compose up -d --build` once
-   from the `deploy` folder instead.
-4. Open `http://<nas-ip>:8000` on any device in the house.
+2. **Docker → Project → Create.** Paste in the whole of
+   [`deploy/docker-compose.yaml`](deploy/docker-compose.yaml) and deploy it.
+   It uses the standard `node:20-alpine` image, so there's nothing to build.
+3. Open `http://<nas-ip>:8000` on any device in the house.
 
-The folder name has a space in it, which is the usual way compose bind
-mounts break — so the volumes use the long `type: bind` form rather than
-the one-line `source:target:ro` string, which splits on colons. Verified
-end to end against a copy of the app at a path with a space in it.
+To keep the data somewhere else, change the one `source:` path in the
+compose file. It has to be an absolute path, because the UGREEN app keeps
+its own copy of the file. The port is the other thing you might change.
 
 **Two things worth knowing:**
 
@@ -134,56 +126,91 @@ end to end against a copy of the app at a path with a space in it.
   `/volume2/appdata/Reading Den/deploy/data/state.json`.** It's the record of
   which sounds and tricky words he's got, and which books he's read. Worth
   including in whatever you already back up.
+- **The container runs whatever is on the GitHub branch.** That's what
+  makes it update itself, and it means anyone who can push to the repo
+  controls what your NAS serves. Right now that's only you. The container
+  can only see its own data folder, not the rest of the NAS.
 
 ---
 
-## Updating an existing install
+## Updating
 
-Paste this over SSH (a phone SSH app is fine). It's the same line every
-time, including the first:
+**Restart the container.** In the UGREEN Docker app: *Containers →
+reading-den → Restart* (or stop and start the project). As it starts it
+downloads the latest version from GitHub. Give it about ten seconds, then
+refresh both screens. His progress is never touched.
+
+To check which version is running, open `http://<nas-ip>:8000/api/health`.
+The `version` field is the commit it's serving.
+
+From a terminal, this does the same restart and waits until the new
+version answers:
 
 ```
 curl -fsSL https://raw.githubusercontent.com/SunithM87/Phonics/claude/gifted-feynman-6q1506/deploy/update.sh | sudo sh
 ```
 
-It asks for your NAS password (that's the `sudo`) and finishes with
-`Done — now on <version>`. It downloads the latest version from GitHub,
-copies it over the top of the install, rebuilds and restarts the container
-only if something server-side changed, and waits until the server answers.
-His progress in `deploy/data/` is never touched, and a failed download
-changes nothing. It's safe to run any time.
+**If you set it up before the container updated itself**, your project
+still has the old compose file, and restarting it won't update anything.
+Switch it over once:
 
-It installs to `/volume2/appdata/Reading Den`. To update an install
-somewhere else, run the copy inside that folder instead:
-`sudo sh "/path/to/Reading Den/deploy/update.sh"`.
+1. In the UGREEN Docker app, open the **reading-den** project and edit
+   its compose file.
+2. Replace all of it with the current
+   [`deploy/docker-compose.yaml`](deploy/docker-compose.yaml) and save and
+   redeploy. It points at the same data folder, so his progress carries
+   over.
+3. If the app won't let you edit the project, delete the old project and
+   create a new one from the same file. If it offers to delete volumes or
+   data, say **no**.
 
-This works because the repo is public. If it's made private again, add a
-read-only GitHub token to the end, once: `… | sudo sh -s -- github_pat_…`.
-The token needs *Only select repositories → Phonics* and *Contents:
-Read-only*. It's saved next to the app folder and reused.
-
-The script tracks the `claude/gifted-feynman-6q1506` branch. If that ever
-gets merged into `main`, use `main` in place of the branch name in the URL
-above and run it as `… | sudo BRANCH=main sh`.
-
-**Doing it by hand instead** still works. Copy the files over the top of
-the folder (never delete it first, because `deploy/data/` is his progress).
-Then:
-
-| What changed | What to do |
-|---|---|
-| Anything in `assets/`, any `.html`, stories, artwork | Nothing. Refresh the browser. |
-| `deploy/docker-compose.yaml` (port, paths) | `sudo docker compose up -d` from `deploy/` |
-| `server/server.js`, `server/package.json`, `server/Dockerfile` | `sudo docker compose up -d --build` from `deploy/` |
-
-The site files are bind-mounted, so they go live on copy. The server is
-baked into the image, so a changed `server.js` needs the rebuild. The
-portal tells you when this has happened: the top-right pill reads
-**● Synced · server needs rebuilding** until the container is rebuilt.
+After that, restarting is all an update ever needs. The old app files in
+`/volume2/appdata/Reading Den` aren't used any more, and only
+`deploy/data/` matters. The branch it follows is set in two places in the
+compose file (`BRANCH=` and the URL). Change both if you ever switch, for
+example to `main`.
 
 If a page still looks stale after a refresh, hard-refresh it
 (Ctrl/Cmd+Shift+R). Occasionally a tablet browser holds on to old
 JavaScript regardless of the no-cache header.
+
+### Using it away from home (Tailscale)
+
+The app needs nothing special for this. Every URL it uses is relative to
+the page (the sync socket is built from `window.location`), and the server
+doesn't check the hostname, so it works the same whether you reach it as
+`192.168.1.170:8000`, a Tailscale `100.x.y.z:8000` address, or a MagicDNS
+name. If it works at home and not away, the problem is the route to the
+NAS, not the app. Check these in order:
+
+1. **Use the Tailscale address, not the home one.** `192.168.1.170` only
+   exists on your home Wi-Fi. Away from home, use the NAS's Tailscale IP
+   (the `100.…` address in the Tailscale app or admin console, or
+   `tailscale ip -4` on the NAS) or its MagicDNS name:
+   `http://100.x.y.z:8000`. The one exception: if the NAS advertises your
+   home subnet as a Tailscale route *and* you've approved it in the admin
+   console, the home IP works too.
+2. **Tailscale has to be on at both ends.** The phone or laptop needs the
+   Tailscale VPN switched on (not just the app installed). The NAS needs to
+   show as *Connected* in the admin console.
+3. **The NAS firewall.** If UGOS's firewall is on, it may only allow your
+   home subnet. Allow port 8000, or the Tailscale range `100.64.0.0/10`.
+4. **Test from the NAS itself** over SSH:
+   `curl -s http://$(tailscale ip -4):8000/api/health`. If that answers,
+   the container and firewall are fine and the problem is on the device
+   you're connecting from. If the `tailscale` command isn't found, Tailscale
+   is running as a UGOS app or container rather than on the NAS itself. In
+   that case skip this test and rely on 1–3.
+
+If you front it with `tailscale serve` for an `https://` address, that
+works too: the page switches the sync socket to `wss://` automatically.
+
+### Moving it to a different folder
+
+Only the data folder matters. Stop the container, move `deploy/data/` (or
+the whole `Reading Den` folder) to its new home, change the `source:` path
+in the project's compose file to match, and deploy it again. His progress
+comes along inside `state.json`.
 
 ---
 
@@ -266,8 +293,9 @@ server/server.js                    static server + sync (http + ws, nothing els
 tools/check-content.js              validates every word, sort, wheel, story and tricky mark against its level
 tools/check-determinism.js          guards that both screens compute the same thing
 tools/segment.js                    helper for adding words to the bank (draft segmentation, then review by hand)
-deploy/docker-compose.yaml           NAS deployment
-deploy/update.sh                     one-command update from GitHub (see Updating)
+deploy/docker-compose.yaml           NAS deployment (self-updating; paste into the UGREEN Docker app)
+deploy/container-start.sh            runs in the container on every start: fetch latest, then serve
+deploy/update.sh                     terminal shortcut: restart the container and wait
 ```
 
 ---
