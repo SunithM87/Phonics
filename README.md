@@ -152,7 +152,10 @@ curl -fsSL https://raw.githubusercontent.com/SunithM87/Phonics/claude/gifted-fey
 
 **If you set it up before the container updated itself**, your project
 still has the old compose file, and restarting it won't update anything.
-Switch it over once:
+Switch it over once. The terminal command above does this for you: it
+spots the old container, writes the new compose file (over the UGREEN
+app's own copy too, keeping a `.before-self-update` backup), keeps the
+same data folder and redeploys. Or, in the UGREEN app:
 
 1. In the UGREEN Docker app, open the **reading-den** project and edit
    its compose file.
