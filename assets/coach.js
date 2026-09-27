@@ -3,19 +3,30 @@
 
 function rerender() { render(); }
 
+/* On a phone or small tablet the sidebar folds into a menu button that
+ * shows which activity is up; tapping it drops the full list down. The
+ * open/closed state is this screen's alone, so it isn't synced. */
+function setMenu(open) {
+  document.body.classList.toggle("menu-open", open);
+  document.getElementById("menutoggle").setAttribute("aria-expanded", open ? "true" : "false");
+}
+
 function renderSidebar(s) {
   const nav = document.getElementById("sidebar");
   nav.innerHTML = "";
   ACTIVITY_ORDER.forEach((key) => {
     const a = ACTIVITIES[key];
     nav.appendChild(el("button", { class: "navitem" + (s.activity === key ? " active" : ""),
-      onclick: () => saveState({ activity: key, tab: (a.tabs && a.tabs[0].id) || null }) },
+      onclick: () => { setMenu(false); saveState({ activity: key, tab: (a.tabs && a.tabs[0].id) || null }); } },
       [el("span", { class: "navicon", text: a.icon }), el("span", { text: a.label })]));
   });
-  nav.appendChild(el("button", { class: "stickerbtn", onclick: openStickers },
+  nav.appendChild(el("button", { class: "stickerbtn", onclick: () => { setMenu(false); openStickers(); } },
     [el("span", { class: "sticker-top", text: "SEND A" }), el("span", { class: "sticker-word", text: "Sticker" })]));
-  const active = nav.querySelector(".navitem.active");
-  if (active && window.matchMedia("(max-width: 860px)").matches) active.scrollIntoView({ block: "nearest", inline: "center" });
+  const cur = ACTIVITIES[s.activity] || ACTIVITIES.flashcards;
+  const label = document.getElementById("mt-current");
+  label.innerHTML = "";
+  label.appendChild(el("span", { class: "navicon", text: cur.icon }));
+  label.appendChild(document.createTextNode(cur.label));
 }
 
 function renderTabs(s, a) {
@@ -169,7 +180,12 @@ document.getElementById("directions-toggle").onclick = () => saveState({ showDir
 document.getElementById("chip-level").onclick = openLevelPicker;
 document.getElementById("chip-band").onclick = openBandPicker;
 document.getElementById("modal").onclick = (e) => { if (e.target.id === "modal") closeModal(); };
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); setMenu(false); } });
+document.getElementById("menutoggle").onclick = (e) => { e.stopPropagation(); setMenu(!document.body.classList.contains("menu-open")); };
+document.addEventListener("click", (e) => {
+  if (document.body.classList.contains("menu-open") && !e.target.closest("#sidebar, #menutoggle")) setMenu(false);
+});
+window.matchMedia("(max-width: 860px)").addEventListener("change", () => setMenu(false));
 
 window.addEventListener("rd-change", render);
 window.addEventListener("rd-sync", renderPill);
