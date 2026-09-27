@@ -185,7 +185,8 @@ document.getElementById("menutoggle").onclick = (e) => { e.stopPropagation(); se
 document.addEventListener("click", (e) => {
   if (document.body.classList.contains("menu-open") && !e.target.closest("#sidebar, #menutoggle")) setMenu(false);
 });
-window.matchMedia("(max-width: 860px)").addEventListener("change", () => setMenu(false));
+const MENU_QUERY = "(max-width: 860px), (max-width: 1180px) and (pointer: coarse)"; // matches style.css
+window.matchMedia(MENU_QUERY).addEventListener("change", () => setMenu(false));
 
 window.addEventListener("rd-change", render);
 window.addEventListener("rd-sync", renderPill);

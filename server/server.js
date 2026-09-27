@@ -80,6 +80,8 @@ const MIME = {
   ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8",
 };
 
+const NOT_SERVED = new Set(["deploy", "server", "tools", "node_modules"]);
+
 function serveStatic(req, res) {
   let reqPath;
   try {
@@ -94,6 +96,14 @@ function serveStatic(req, res) {
   if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) {
     res.writeHead(403);
     return res.end("Forbidden");
+  }
+  // The whole folder is mounted as the site, but only the app is meant to be
+  // served: never dotfiles (a token, .git) or the deploy/server/tools folders
+  // (his progress file, the server's own source). Same 404 as a missing file.
+  const segs = path.relative(PUBLIC_DIR, filePath).split(path.sep);
+  if (segs.some((seg) => seg.startsWith(".")) || NOT_SERVED.has(segs[0])) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    return res.end("Not found");
   }
   fs.readFile(filePath, (err, data) => {
     if (err) {

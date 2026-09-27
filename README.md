@@ -139,100 +139,62 @@ end to end against a copy of the app at a path with a space in it.
 
 ## Updating an existing install
 
-Most updates need **no Docker commands at all.** The site files are
-bind-mounted into the container, and the server reads them from disk on
-every request with `Cache-Control: no-cache` — so new HTML, CSS, JS, story
-or artwork changes are live the moment they land on the NAS. Copy the files
-over, refresh the browser, done. (Verified: a running server picks up both
-edited and brand-new files with no restart.)
+One command over SSH (a phone SSH app is fine):
 
-**Copy over the top of the existing folder — don't delete it first.**
-`deploy/data/` holds his progress and isn't in the download, so a
-copy-over-the-top merge leaves it alone. Deleting the folder and copying
-fresh throws away the record of every sound and tricky word he's got.
+```
+sudo sh "/volume2/appdata/Reading Den/deploy/update.sh"
+```
 
-Then, only if certain files changed:
+It downloads the latest version from GitHub, copies it over the top of the
+install, rebuilds and restarts the container only if something server-side
+changed, and waits until the server answers. It finishes with
+`Done — now on <version>`. His progress in `deploy/data/` is never touched,
+and a failed download changes nothing. It's safe to run any time.
+
+**First time only: a GitHub token.** The repo is private, so the NAS needs
+a read-only key to download it:
+
+1. On github.com: **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token.** Set *Repository access* to
+   *Only select repositories → Phonics* and *Permissions → Contents* to
+   *Read-only*. Nothing else. Pick an expiry you're happy with; when it
+   runs out, the update tells you so and you repeat this step.
+2. On the NAS, the first run has to fetch the script itself, since an older
+   install doesn't have it yet. Paste your token in place of `github_pat_…`:
+
+   ```
+   T='github_pat_…'
+   curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/SunithM87/Phonics/contents/deploy/update.sh?ref=claude/gifted-feynman-6q1506" | sudo sh -s -- "$T"
+   ```
+
+   That saves the token (readable by root only) at
+   `/volume2/appdata/.reading-den-github-token`, which is next to the app
+   folder rather than inside it, because everything inside is the website.
+   From then on the one-line command above is all you need.
+
+The script tracks the `claude/gifted-feynman-6q1506` branch. If that ever
+gets merged into `main`, run it once as
+`sudo BRANCH=main sh ".../update.sh"`, or change the `BRANCH=` line at the
+top of the script.
+
+**Doing it by hand instead** still works. Copy the files over the top of
+the folder (never delete it first, because `deploy/data/` is his progress).
+Then:
 
 | What changed | What to do |
 |---|---|
 | Anything in `assets/`, any `.html`, stories, artwork | Nothing. Refresh the browser. |
-| `deploy/docker-compose.yaml` (port, paths) | Recreate the container — `docker compose up -d` |
-| `server/server.js`, `server/package.json`, `server/Dockerfile` | Rebuild the image — `docker compose up -d --build` |
+| `deploy/docker-compose.yaml` (port, paths) | `sudo docker compose up -d` from `deploy/` |
+| `server/server.js`, `server/package.json`, `server/Dockerfile` | `sudo docker compose up -d --build` from `deploy/` |
 
-The server is *not* bind-mounted — it's baked into the image — so a changed
-`server.js` needs that rebuild even though every other file goes live on
-copy. The portal tells you when this has happened: the top-right pill reads
+The site files are bind-mounted, so they go live on copy. The server is
+baked into the image, so a changed `server.js` needs the rebuild. The
+portal tells you when this has happened: the top-right pill reads
 **● Synced · server needs rebuilding** until the container is rebuilt.
-`http://<nas-ip>:8000/api/health` is the other tell — an up-to-date server
-answers with `coaches` and `students` counts, an old one with just `ok`.
-
-Those last two over SSH (Control Panel → Terminal), noting the quotes —
-the path has a space in it:
-
-```
-cd "/volume2/appdata/Reading Den/deploy"
-sudo docker compose up -d --build
-sudo docker compose logs --tail 20
-```
-
-Or from the UGOS Docker app, stop the project and start it again; for a
-rebuild it needs to rebuild the image rather than just restart, which is
-what the SSH command above guarantees.
 
 If a page still looks stale after a refresh, hard-refresh it
-(Ctrl/Cmd+Shift+R) — occasionally a tablet browser holds on to old
+(Ctrl/Cmd+Shift+R). Occasionally a tablet browser holds on to old
 JavaScript regardless of the no-cache header.
-
-### Using it away from home (Tailscale)
-
-The app needs nothing special for this. Every URL it uses is relative to
-the page (the sync socket is built from `window.location`), and the server
-doesn't check the hostname, so it works the same whether you reach it as
-`192.168.1.170:8000`, a Tailscale `100.x.y.z:8000` address, or a MagicDNS
-name. If it works at home and not away, the problem is the route to the
-NAS, not the app. Check these in order:
-
-1. **Use the Tailscale address, not the home one.** `192.168.1.170` only
-   exists on your home Wi-Fi. Away from home, use the NAS's Tailscale IP
-   (the `100.…` address in the Tailscale app or admin console, or
-   `tailscale ip -4` on the NAS) or its MagicDNS name:
-   `http://100.x.y.z:8000`. The one exception: if the NAS advertises your
-   home subnet as a Tailscale route *and* you've approved it in the admin
-   console, the home IP works too.
-2. **Tailscale has to be on at both ends.** The phone or laptop needs the
-   Tailscale VPN switched on (not just the app installed). The NAS needs to
-   show as *Connected* in the admin console.
-3. **The NAS firewall.** If UGOS's firewall is on, it may only allow your
-   home subnet. Allow port 8000, or the Tailscale range `100.64.0.0/10`.
-4. **Test from the NAS itself** over SSH:
-   `curl -s http://$(tailscale ip -4):8000/api/health`. If that answers,
-   the container and firewall are fine and the problem is on the device
-   you're connecting from. If the `tailscale` command isn't found, Tailscale
-   is running as a UGOS app or container rather than on the NAS itself. In
-   that case skip this test and rely on 1–3.
-
-If you front it with `tailscale serve` for an `https://` address, that
-works too: the page switches the sync socket to `wss://` automatically.
-
-### Moving it to a different folder
-
-The compose file uses relative paths, so a move is: stop, move, start.
-
-```
-cd "/volume2/appdata/Reading Den/deploy"      # wherever it is now
-sudo docker compose down                       # stops and removes the container; data/ is untouched
-sudo mv "/volume2/appdata/Reading Den" "/volume3/somewhere/Reading Den"
-cd "/volume3/somewhere/Reading Den/deploy"
-sudo docker compose up -d --build
-curl -s http://localhost:8000/api/health       # {"ok":true,...} = running
-```
-
-`docker compose down` never touches bind-mounted folders, so
-`deploy/data/state.json` moves with the folder and his progress comes
-along. If the container was created by the UGOS Docker app rather than
-this compose file, `down` won't see it — use `sudo docker rm -f
-reading-den` instead, then repoint or delete the old Project entry in
-the UI (say no if it offers to remove data).
 
 ---
 
@@ -316,6 +278,7 @@ tools/check-content.js              validates every word, sort, wheel, story and
 tools/check-determinism.js          guards that both screens compute the same thing
 tools/segment.js                    helper for adding words to the bank (draft segmentation, then review by hand)
 deploy/docker-compose.yaml           NAS deployment
+deploy/update.sh                     one-command update from GitHub (see Updating)
 ```
 
 ---

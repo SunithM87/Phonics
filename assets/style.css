@@ -561,7 +561,11 @@ body.landing { background: linear-gradient(170deg, #f7f4fc, #eef4f9); }
 
 /* ========================== responsive ========================== */
 
-@media (max-width: 860px) {
+/* The activity menu: phones, small tablets, and any touch screen up to
+ * 1180px wide, which covers foldables' inner screens in both
+ * orientations. A narrow desktop window keeps the sidebar down to 860px.
+ * Keep in step with MENU_QUERY in assets/coach.js. */
+@media (max-width: 860px), (max-width: 1180px) and (pointer: coarse) {
   .shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .navwrap { display: block; position: relative; z-index: 40; }
   /* The sidebar becomes a menu: a bar showing the current activity, and
@@ -589,6 +593,9 @@ body.landing { background: linear-gradient(170deg, #f7f4fc, #eef4f9); }
   .topbar-right .btn { white-space: nowrap; }
   .sticker-top { display: inline; margin-right: 6px; }
   .sticker-word { font-size: 1.5rem; }
+}
+
+@media (max-width: 860px) {
   .spread { grid-template-columns: 1fr; }
   .spread-text { border-left: none; border-top: 1px solid var(--line); }
   .land-cards, .land-grid { grid-template-columns: 1fr; }
