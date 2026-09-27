@@ -128,7 +128,8 @@ end to end against a copy of the app at a path with a space in it.
 
 - **Don't port-forward this.** There's no login and no accounts, by design —
   it's one family's shared state. That's fine on your own LAN and a bad idea
-  on the open internet.
+  on the open internet. For access away from home use Tailscale (below),
+  which keeps it private to your own devices.
 - **His progress lives in
   `/volume2/appdata/Reading Den/deploy/data/state.json`.** It's the record of
   which sounds and tricky words he's got, and which books he's read. Worth
@@ -181,6 +182,37 @@ what the SSH command above guarantees.
 If a page still looks stale after a refresh, hard-refresh it
 (Ctrl/Cmd+Shift+R) — occasionally a tablet browser holds on to old
 JavaScript regardless of the no-cache header.
+
+### Using it away from home (Tailscale)
+
+The app needs nothing special for this. Every URL it uses is relative to
+the page (the sync socket is built from `window.location`), and the server
+doesn't check the hostname, so it works the same whether you reach it as
+`192.168.1.170:8000`, a Tailscale `100.x.y.z:8000` address, or a MagicDNS
+name. If it works at home and not away, the problem is the route to the
+NAS, not the app. Check these in order:
+
+1. **Use the Tailscale address, not the home one.** `192.168.1.170` only
+   exists on your home Wi-Fi. Away from home, use the NAS's Tailscale IP
+   (the `100.…` address in the Tailscale app or admin console, or
+   `tailscale ip -4` on the NAS) or its MagicDNS name:
+   `http://100.x.y.z:8000`. The one exception: if the NAS advertises your
+   home subnet as a Tailscale route *and* you've approved it in the admin
+   console, the home IP works too.
+2. **Tailscale has to be on at both ends.** The phone or laptop needs the
+   Tailscale VPN switched on (not just the app installed). The NAS needs to
+   show as *Connected* in the admin console.
+3. **The NAS firewall.** If UGOS's firewall is on, it may only allow your
+   home subnet. Allow port 8000, or the Tailscale range `100.64.0.0/10`.
+4. **Test from the NAS itself** over SSH:
+   `curl -s http://$(tailscale ip -4):8000/api/health`. If that answers,
+   the container and firewall are fine and the problem is on the device
+   you're connecting from. If the `tailscale` command isn't found, Tailscale
+   is running as a UGOS app or container rather than on the NAS itself. In
+   that case skip this test and rely on 1–3.
+
+If you front it with `tailscale serve` for an `https://` address, that
+works too: the page switches the sync socket to `wss://` automatically.
 
 ### Moving it to a different folder
 
