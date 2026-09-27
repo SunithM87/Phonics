@@ -160,11 +160,12 @@ a read-only key to download it:
    *Read-only*. Nothing else. Pick an expiry you're happy with; when it
    runs out, the update tells you so and you repeat this step.
 2. On the NAS, the first run has to fetch the script itself, since an older
-   install doesn't have it yet. Paste your token in place of `github_pat_…`:
+   install doesn't have it yet. It's one line, so it pastes cleanly into a
+   phone SSH app. Put your token in place of `github_pat_…` (keep the
+   quotes):
 
    ```
-   T='github_pat_…'
-   curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/SunithM87/Phonics/contents/deploy/update.sh?ref=claude/gifted-feynman-6q1506" | sudo sh -s -- "$T"
+   T='github_pat_…'; curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/SunithM87/Phonics/contents/deploy/update.sh?ref=claude/gifted-feynman-6q1506" | sudo sh -s -- "$T"
    ```
 
    That saves the token (readable by root only) at
