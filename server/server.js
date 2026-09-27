@@ -125,7 +125,7 @@ const server = http.createServer((req, res) => {
     }
     if (req.url === "/api/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ ok: true, ...presence() }));
+      return res.end(JSON.stringify({ ok: true, version: process.env.APP_VERSION || null, ...presence() }));
     }
     serveStatic(req, res);
   } catch (e) {

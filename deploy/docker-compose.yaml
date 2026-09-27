@@ -1,42 +1,37 @@
-# Deployment for the UGREEN NAS.
+# The Reading Den on the UGREEN NAS.
 #
-# The paths are relative to this file, so the folder can live anywhere —
-# currently /volume2/appdata/Reading Den — and be moved without editing
-# this. The site is served on port 8000 → http://<your-nas-ip>:8000
+# Self-updating: every time the container starts it downloads the latest
+# version from GitHub and serves that. To update, restart the container
+# in the UGREEN Docker app. No terminal, no copying files.
 #
-# The folder name has a space in it. That's why the volumes use the long
-# `type: bind` form rather than the usual one-line "source:target:ro"
-# string — the short form splits on colons and a path with a space in it
-# is where that tends to go wrong. This form has no such ambiguity.
+# The only thing on the NAS is the data folder below: his progress
+# (state.json) plus the downloaded copy of the app. Back that folder up.
+# The path has to be absolute, because the UGREEN app keeps its own copy
+# of this file somewhere else. The long `type: bind` form is there because
+# "Reading Den" has a space in it.
 #
-# If your NAS's Docker "Project" UI won't handle the `build:` section,
-# enable SSH (Control Panel → Terminal) and run this once from this
-# folder instead:
-#   sudo docker compose up -d --build
-# The Project view can still manage the container afterwards.
+# Paste this whole file into the UGREEN Docker app's Project editor (or run
+# `sudo docker compose up -d` next to it) and it does the rest.
 
 services:
   reading-den:
-    build:
-      context: ..
-      dockerfile: server/Dockerfile
+    image: node:20-alpine
     container_name: reading-den
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
       - PORT=8000
-      - PUBLIC_DIR=/app/public
-      - STATE_FILE=/app/data/state.json
+      # Which branch to run. If you change it, change it in the URL below too.
+      - BRANCH=claude/gifted-feynman-6q1506
     volumes:
-      # The site itself — read-only, because the container never needs to
-      # write to it. Edit the files on the NAS and just refresh the browser.
       - type: bind
-        source: ..
-        target: /app/public
-        read_only: true
-      # His progress (sounds ticked off, tricky words, books read) lives
-      # here. This is the one directory worth backing up.
-      - type: bind
-        source: ./data
+        source: /volume2/appdata/Reading Den/deploy/data
         target: /app/data
+    # Fetch the start-up script, then run it; it fetches the app itself. If
+    # GitHub is unreachable, the last copy of both is used.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        node -e "fetch(process.argv[1]).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()}).then(t=>require('fs').writeFileSync('/app/data/start.sh',t)).catch(e=>{console.error('[boot] could not fetch start.sh:',e.message);process.exit(1)})" "https://raw.githubusercontent.com/SunithM87/Phonics/claude/gifted-feynman-6q1506/deploy/container-start.sh" || echo "[boot] using the last start.sh"
+        exec sh /app/data/start.sh

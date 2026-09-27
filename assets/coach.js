@@ -160,7 +160,7 @@ function renderPill() {
   const pill = document.getElementById("syncpill");
   const p = getPresence();
   if (!isSynced()) { pill.textContent = "● No server — this screen only"; pill.className = "syncpill"; }
-  else if (serverOutOfDate()) { pill.textContent = "● Synced · server needs rebuilding (docker compose up -d --build)"; pill.className = "syncpill warn"; pill.title = "The site files are new but the server container is still the old version. It still syncs, but it can't report whether his screen is open. See README → Updating."; }
+  else if (serverOutOfDate()) { pill.textContent = "● Synced · server out of date, restart the container"; pill.className = "syncpill warn"; pill.title = "The server is an older version than the page. It still syncs, but it can't report whether his screen is open. Restart the container in the UGREEN Docker app (see README → Updating)."; }
   else if (p.students > 0) { pill.textContent = `● His screen is connected`; pill.className = "syncpill on"; }
   else { pill.textContent = "● Server on · his screen isn't open"; pill.className = "syncpill warn"; }
 }
