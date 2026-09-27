@@ -1,18 +1,17 @@
 #!/bin/sh
 # Update the Reading Den on the NAS from GitHub, then restart the container.
+# Paste this over SSH — the same line every time, including the first:
 #
-#   sudo sh "/volume2/appdata/Reading Den/deploy/update.sh"
+#   curl -fsSL https://raw.githubusercontent.com/SunithM87/Phonics/claude/gifted-feynman-6q1506/deploy/update.sh | sudo sh
 #
-# The repo is private, so the NAS needs a read-only GitHub token. Give it
-# once, as an argument; it's kept (root-only) next to the app folder, not
-# inside it, and reused on every later run:
-#
-#   sudo sh "/volume2/appdata/Reading Den/deploy/update.sh" github_pat_...
-#
-# What it does: downloads the branch below, copies it over the top of this
-# folder (deploy/data — his progress — is never touched), then runs
+# It downloads the latest version, copies it over the top of the install
+# (deploy/data — his progress — is never touched), then runs
 # `docker compose up -d --build`, which only rebuilds or restarts what
-# actually changed. Safe to run any time.
+# actually changed. A failed download changes nothing. Safe to run any time.
+#
+# If the repo is ever made private again, run it once with a read-only
+# GitHub token on the end (`... | sudo sh -s -- github_pat_...`); it's kept
+# next to the app folder and reused.
 set -eu
 
 REPO="SunithM87/Phonics"
@@ -46,15 +45,22 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 echo "Downloading $REPO ($BRANCH)…"
-if [ -n "$TOKEN" ]; then set -- -H "Authorization: Bearer $TOKEN"; else set --; fi
-code="$(curl -sSL -o "$TMP/app.tgz" -w '%{http_code}' "$@" \
-  "https://api.github.com/repos/$REPO/tarball/$BRANCH")" || die "download failed — is the NAS online?"
+fetch() {
+  if [ -n "$1" ]; then set -- -H "Authorization: Bearer $1"; else set --; fi
+  curl -sSL -o "$TMP/app.tgz" -w '%{http_code}' "$@" \
+    "https://codeload.github.com/$REPO/tar.gz/refs/heads/$BRANCH" || true
+}
+code="$(fetch "$TOKEN")"
+# A saved token that's since been deleted or expired shouldn't block a
+# public repo: try again without it.
+if [ -n "$TOKEN" ] && [ "$code" != 200 ]; then
+  code="$(fetch "")"
+  if [ "$code" = 200 ]; then echo "(saved token no longer works; the repo is public, so it isn't needed — removing it)"; rm -f "$TOKEN_FILE"; fi
+fi
 case "$code" in
   200) ;;
-  401) die "GitHub rejected the token (expired or mistyped). Run again with a new one on the end." ;;
-  403|404)
-    if [ -z "$TOKEN" ]; then die "GitHub said $code: the repo is private, so this needs a token — run again with one on the end."
-    else die "GitHub said $code: the token can't see $REPO, or branch '$BRANCH' doesn't exist."; fi ;;
+  000|"") die "couldn't reach GitHub — is the NAS online?" ;;
+  401|403|404) die "GitHub said $code: the repo may be private again (run once with a token on the end), or branch '$BRANCH' doesn't exist." ;;
   *) die "GitHub answered HTTP $code" ;;
 esac
 
@@ -62,7 +68,9 @@ mkdir "$TMP/src"
 tar -xzf "$TMP/app.tgz" -C "$TMP/src"
 SRC="$(find "$TMP/src" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 [ -n "$SRC" ] && [ -f "$SRC/coach.html" ] || die "the download doesn't look like the app"
-VERSION="$(basename "$SRC" | sed 's/.*-//' | cut -c1-7)"
+# GitHub stamps the commit into the archive's header ("comment=<sha>").
+VERSION="$(gzip -dc "$TMP/app.tgz" | head -c 1024 | tr -c '0-9a-z=' '\n' | sed -n 's/^comment=\([0-9a-f]\{7\}\).*/\1/p' | head -n 1)"
+VERSION="${VERSION:-the latest version}"
 rm -rf "$SRC/deploy/data"   # belt and braces: the repo never ships it
 
 # Copy over the top, then hand new files to whoever owns the folder, so

@@ -139,44 +139,32 @@ end to end against a copy of the app at a path with a space in it.
 
 ## Updating an existing install
 
-One command over SSH (a phone SSH app is fine):
+Paste this over SSH (a phone SSH app is fine). It's the same line every
+time, including the first:
 
 ```
-sudo sh "/volume2/appdata/Reading Den/deploy/update.sh"
+curl -fsSL https://raw.githubusercontent.com/SunithM87/Phonics/claude/gifted-feynman-6q1506/deploy/update.sh | sudo sh
 ```
 
-It downloads the latest version from GitHub, copies it over the top of the
-install, rebuilds and restarts the container only if something server-side
-changed, and waits until the server answers. It finishes with
-`Done — now on <version>`. His progress in `deploy/data/` is never touched,
-and a failed download changes nothing. It's safe to run any time.
+It asks for your NAS password (that's the `sudo`) and finishes with
+`Done — now on <version>`. It downloads the latest version from GitHub,
+copies it over the top of the install, rebuilds and restarts the container
+only if something server-side changed, and waits until the server answers.
+His progress in `deploy/data/` is never touched, and a failed download
+changes nothing. It's safe to run any time.
 
-**First time only: a GitHub token.** The repo is private, so the NAS needs
-a read-only key to download it:
+It installs to `/volume2/appdata/Reading Den`. To update an install
+somewhere else, run the copy inside that folder instead:
+`sudo sh "/path/to/Reading Den/deploy/update.sh"`.
 
-1. On github.com: **Settings → Developer settings → Personal access tokens →
-   Fine-grained tokens → Generate new token.** Set *Repository access* to
-   *Only select repositories → Phonics* and *Permissions → Contents* to
-   *Read-only*. Nothing else. Pick an expiry you're happy with; when it
-   runs out, the update tells you so and you repeat this step.
-2. On the NAS, the first run has to fetch the script itself, since an older
-   install doesn't have it yet. It's one line, so it pastes cleanly into a
-   phone SSH app. Put your token in place of `github_pat_…` (keep the
-   quotes):
-
-   ```
-   T='github_pat_…'; curl -fsSL -H "Authorization: Bearer $T" -H "Accept: application/vnd.github.raw" "https://api.github.com/repos/SunithM87/Phonics/contents/deploy/update.sh?ref=claude/gifted-feynman-6q1506" | sudo sh -s -- "$T"
-   ```
-
-   That saves the token (readable by root only) at
-   `/volume2/appdata/.reading-den-github-token`, which is next to the app
-   folder rather than inside it, because everything inside is the website.
-   From then on the one-line command above is all you need.
+This works because the repo is public. If it's made private again, add a
+read-only GitHub token to the end, once: `… | sudo sh -s -- github_pat_…`.
+The token needs *Only select repositories → Phonics* and *Contents:
+Read-only*. It's saved next to the app folder and reused.
 
 The script tracks the `claude/gifted-feynman-6q1506` branch. If that ever
-gets merged into `main`, run it once as
-`sudo BRANCH=main sh ".../update.sh"`, or change the `BRANCH=` line at the
-top of the script.
+gets merged into `main`, use `main` in place of the branch name in the URL
+above and run it as `… | sudo BRANCH=main sh`.
 
 **Doing it by hand instead** still works. Copy the files over the top of
 the folder (never delete it first, because `deploy/data/` is his progress).
