@@ -27,6 +27,38 @@ school reading volunteer runs:
 Plus **Send a Sticker** — pops a big emoji on his screen. Worth saving for
 something he found hard.
 
+### The progress page and sessions
+
+Opening the app always lands on the **progress page**, not wherever you
+left off last time. It shows:
+
+- **where he is:** Activity Level, the sounds it adds, his Story Level;
+- **four numbers:** sounds read ✓ out of those taught so far, tricky
+  words likewise, books read all three times, and sessions this week
+  (with minutes and any run of days in a row);
+- **the last two weeks** as a row of days, ticked where he practised;
+- **every sound and tricky word so far**, each marked ✓, ✗ or not
+  tried, with what's coming at the next level;
+- **next time:** what needs another look, what hasn't been tried at this
+  level, and which book to read next (one part-way through its three
+  reads first, otherwise the easiest unread one at his level);
+- **the last session** and a list of recent ones.
+
+When everything up to his level is marked ✓, it says so. It doesn't
+move him on by itself; that's school's call.
+
+**Start a session** opens the reader portal at Flashcards with every game
+cleared, keeping his levels. **End session** (top right in the portal)
+shows what he did — sounds read ✓, ones that need another look, books and
+which read — offers a sticker, then saves it to his record and returns to
+the progress page. His screen says *All done!* with a star for each thing
+he got, then *Ready when you are* until the next session.
+
+A session left open with nothing happening for three hours counts as
+finished, so the app never resumes yesterday. Its summary is still saved,
+just without the *All done!* screen. Opening the portal directly with no
+session going on sends you to the progress page.
+
 ### The stories
 
 Forty-eight little books, built the way the school's Little Wandle reading
@@ -325,7 +357,9 @@ No Comic Sans anywhere.
 ## Project layout
 
 ```
-index.html, coach.html, play.html   landing / reader portal / child's screen
+index.html, coach.html, play.html   progress page / reader portal / child's screen
+assets/home.js                      the progress page
+assets/progress.js                  sessions, their summaries, and the progress figures
 assets/core.js                      state + WebSocket sync
 assets/activities.js                all seven activities (coach + student modes)
 assets/coach.js, play.js            the two page shells

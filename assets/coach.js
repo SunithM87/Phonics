@@ -165,8 +165,46 @@ function renderPill() {
   else { pill.textContent = "● Server on · his screen isn't open"; pill.className = "syncpill warn"; }
 }
 
+/* End session: show what he did, then save it and go back to the progress
+ * page. His screen switches to its "all done" screen at the same moment. */
+function openEndSession() {
+  const s = loadState();
+  if (!s.session) { window.location.href = "index.html"; return; }
+  const x = summarise(s.session.start, Date.now());
+  const yes = x.sounds.yes.concat(x.tricky.yes), no = x.sounds.no.concat(x.tricky.no);
+  const body = el("div", { class: "endsum" }, [
+    el("p", { class: "es-time", text: `${x.minutes} minute${x.minutes === 1 ? "" : "s"} so far` }),
+    yes.length ? el("p", {}, [el("strong", { text: "Read it ✓ " }), el("span", { class: "rd", text: yes.map(gpcLabel).join("  ") })]) : null,
+    no.length ? el("p", {}, [el("strong", { text: "Needs another look ✗ " }), el("span", { class: "rd", text: no.map(gpcLabel).join("  ") })]) : null,
+    ...x.reads.map((r) => el("p", {}, [el("strong", { text: r.title + ": " }), el("span", { text: r.which.map((w) => READ_LABEL[w]).join(", ") })])),
+    !yes.length && !no.length && !x.reads.length ? el("p", { class: "hint", text: "Nothing marked ✓ or ✗ this time. That's fine: the session still counts as practice." }) : null,
+    el("p", { class: "hint", text: "Worth a sticker before you go?" }),
+    el("div", { class: "stickergrid small" }, STICKERS.slice(0, 5).map((emoji) => el("button", { class: "stickeropt", text: emoji, onclick: () => sendSticker(emoji) }))),
+    el("div", { class: "rowbtns" }, [
+      el("button", { class: "btn ghost", text: "Keep going", onclick: closeModal }),
+      el("button", { class: "btn", text: "End session", onclick: () => { endSession(); window.location.href = "index.html"; } }),
+    ]),
+  ]);
+  openModal("End this session?", body, "It's saved to his record and shown on the progress page. His screen says well done.");
+}
+
+/* Keep a list of which activities this session used, for the summary. */
+function noteActivity(s) {
+  if (s.session && !(s.session.acts || []).includes(s.activity)) {
+    saveState({ session: Object.assign({}, s.session, { acts: (s.session.acts || []).concat([s.activity]) }) });
+    return true;
+  }
+  return false;
+}
+
 function render() {
   const s = loadState();
+  // No session going on (ended here, on another device, or never started)?
+  // Then this isn't the place to be: the progress page is.
+  // (Wait for the server's copy first: this device's own copy may simply not
+  // know yet that a session was started on another one.)
+  if (!s.session) { if (firstSyncDone) window.location.replace("index.html"); return; }
+  if (noteActivity(s)) return;
   const a = ACTIVITIES[s.activity] || ACTIVITIES.flashcards;
   renderSidebar(s); renderTabs(s, a); renderChips(s); renderDirections(s, a); renderPractise(s);
   document.getElementById("directions-toggle").textContent = s.showDirections ? "Hide directions" : "Directions";
@@ -176,6 +214,7 @@ function render() {
   renderPill();
 }
 
+document.getElementById("end-session").onclick = openEndSession;
 document.getElementById("directions-toggle").onclick = () => saveState({ showDirections: !loadState().showDirections });
 document.getElementById("chip-level").onclick = openLevelPicker;
 document.getElementById("chip-band").onclick = openBandPicker;
@@ -191,4 +230,7 @@ window.matchMedia(MENU_QUERY).addEventListener("change", () => setMenu(false));
 window.addEventListener("rd-change", render);
 window.addEventListener("rd-sync", renderPill);
 window.addEventListener("storage", render);
+// A session left open for hours counts as over; check once we have the
+// server's copy, so a stale local copy can't end someone else's session.
+afterFirstSync(() => { if (closeStaleSession()) window.location.replace("index.html"); else render(); });
 render();

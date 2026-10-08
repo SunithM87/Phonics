@@ -47,7 +47,7 @@ let lastActivity = Date.now();
 
 const DEFAULT_DOC = {
   liveState: { level: 1, band: "pink", activity: "flashcards", tab: "sounds", showDirections: true, updatedAt: 0 },
-  progress: { sounds: {}, tricky: {}, read: {}, updatedAt: 0 },
+  progress: { sounds: {}, tricky: {}, read: {}, sessions: [], updatedAt: 0 },
 };
 
 function loadDoc() {

@@ -35,12 +35,15 @@ const DEFAULT_STATE = {
   wheel: { round: 0, onset: 0 },
   wb: { tiles: [], seq: 1 },
   sticker: null,
+  session: null,   // { start, acts: [] } while a session is going on
+  ended: null,     // { at, summary } — the session that just finished
   updatedAt: 0,
 };
 
 /* progress.sounds[g] / progress.tricky[w] = { v: "yes"|"no", t: when }
- * progress.read[storyId] = { decode: when|0, prosody: when|0, comprehend: when|0 } */
-const DEFAULT_PROGRESS = { sounds: {}, tricky: {}, read: {}, updatedAt: 0 };
+ * progress.read[storyId] = { decode: when|0, prosody: when|0, comprehend: when|0 }
+ * progress.sessions = [{ start, end, minutes, sounds, tricky, reads, acts, … }] */
+const DEFAULT_PROGRESS = { sounds: {}, tricky: {}, read: {}, sessions: [], updatedAt: 0 };
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -126,6 +129,20 @@ let backoff = 1000;
 let presence = { coaches: 0, students: 0 };
 let serverVersion = null;
 let presenceKnown = false; // false until the server has told us who's connected
+
+/* Run something once this device has the server's copy of the state (or
+ * once it's clear there's no server). Anything that writes from a copy that
+ * may be days old — starting or tidying up a session — waits for this, so
+ * a stale local copy can't overwrite newer progress from another device. */
+let firstSyncDone = false;
+const syncWaiters = [];
+function afterFirstSync(cb) { if (firstSyncDone) cb(); else syncWaiters.push(cb); }
+function markFirstSync() {
+  if (firstSyncDone) return;
+  firstSyncDone = true;
+  syncWaiters.splice(0).forEach((cb) => { try { cb(); } catch (e) { console.error(e); } });
+}
+setTimeout(markFirstSync, window.location.protocol === "file:" ? 0 : 2500);
 const dirty = { liveState: false, progress: false };
 
 function isSynced() { return connected; }
@@ -195,6 +212,7 @@ function connect() {
     if (m.type !== "sync") return;
     applySlice("liveState", m.liveState);
     applySlice("progress", m.progress);
+    markFirstSync();
   };
   ws.onclose = () => {
     presenceKnown = false;

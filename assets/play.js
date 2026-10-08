@@ -25,12 +25,39 @@ function renderPill() {
   else { pill.textContent = "● waiting for the grown-up's screen"; pill.className = "stu-pill warn"; }
 }
 
+/* Between sessions his screen rests: "all done" just after one ends, then
+ * "ready when you are" until the next one starts. */
+function renderRest(stage, s) {
+  const justEnded = s.ended && Date.now() - s.ended.at < 30 * 60 * 1000 && !s.ended.auto;
+  if (justEnded) {
+    const x = s.ended.summary || { sounds: { yes: [] }, tricky: { yes: [] }, reads: [] };
+    const stars = Math.min(10, Math.max(1, x.sounds.yes.length + x.tricky.yes.length + x.reads.length));
+    stage.appendChild(el("div", { class: "rest done" }, [
+      el("div", { class: "rest-stars", text: "⭐".repeat(stars) }),
+      el("h1", { class: "rest-title", text: "All done!" }),
+      el("p", { class: "rest-sub", text: "Great reading today." }),
+    ]));
+  } else {
+    stage.appendChild(el("div", { class: "rest" }, [
+      el("div", { class: "rest-icon", text: "📖" }),
+      el("h1", { class: "rest-title", text: "Ready when you are!" }),
+    ]));
+  }
+}
+
 function render() {
   const s = loadState();
-  const a = ACTIVITIES[s.activity] || ACTIVITIES.flashcards;
-  document.getElementById("stu-activity").textContent = a.label;
   const stage = document.getElementById("stage");
   stage.innerHTML = "";
+  if (!s.session) {
+    document.getElementById("stu-activity").textContent = "";
+    renderRest(stage, s);
+    showSticker(s.sticker);
+    renderPill();
+    return;
+  }
+  const a = ACTIVITIES[s.activity] || ACTIVITIES.flashcards;
+  document.getElementById("stu-activity").textContent = a.label;
   a.render(stage, "student");
   showSticker(s.sticker);
   renderPill();
