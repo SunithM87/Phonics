@@ -167,18 +167,20 @@ const READS = [
   { id: "comprehend", label: "Read 3 · talked about it", hint: "What happened? Why? What did he think?" },
 ];
 
+const KIND_LABEL = { story: "Story", nonfiction: "Non-fiction", tale: "Traditional tale" };
+
 const stories = {
   label: "Stories", icon: "❖",
   directions: {
     list: [
-      "Ask him to choose a book by its number — it gives him the first decision of the session.",
-      "Each card shows the highest sound level the book uses. A book at or below his Activity Level he should be able to read; one above it he'll need more help with.",
+      "Ask him to choose a book by its number. It gives him the first decision of the session.",
+      "Half the books are stories and half are non-fiction, as in school. Each card shows the highest sound level the book uses: at or below his Activity Level he should be able to read it, above it he'll need more help.",
     ],
     read: [
-      "Let him read to you. If he's shy, take turns a sentence at a time, or read a page and have him read it back.",
-      "Words in <strong>bold blue</strong> are tricky words. Let him have a go at the regular sounds; if he stalls, give him the tricky bit (the flashcards tab shows which bit that is), not the whole word.",
-      "Click any word to highlight it on his screen if he loses his place.",
-      "The same book, three times over a week or so: once to sound it out, once to read it with expression, once to talk about it. Tick each read off below — that's the record.",
+      "Every book starts with a <strong>Get ready</strong> page: say the sounds, read the words using their sound buttons, and go over the tricky words. Do it every time, even on the third read.",
+      "Then let him read to you. Words in <strong>bold blue</strong> are tricky words: if he stalls, give him the tricky bit, not the whole word. Click any word to highlight it on his screen if he loses his place.",
+      "The last page is for remembering: retell a story from its pictures, or say what you found out from a non-fiction book. The questions there are for Read 3.",
+      "The same book, three times over a week or so: once to sound it out, once to read it with expression, once to talk about it. Tick each read off below.",
     ],
   },
   render(host, mode) {
@@ -206,10 +208,14 @@ const stories = {
   card(st, i, s, detail) {
     const r = readsOf(st.id);
     const done = ["decode", "prosody", "comprehend"].filter((k) => r[k]).length;
-    return el("figure", { class: "story-card" }, [
+    return el("figure", { class: "story-card" + (st.level > s.level ? " above" : "") }, [
       el("div", { class: "story-cover", html: drawScene(st.cover) }),
       el("figcaption", {}, [
         el("strong", { text: `${i + 1}. ${st.title}` }),
+        el("span", { class: "card-kinds" }, [
+          el("span", { class: "kind-tag k-" + st.kind, text: KIND_LABEL[st.kind] || "Story" }),
+          st.blending ? el("span", { class: "kind-tag k-blend", text: "Blending practice" }) : null,
+        ]),
         detail ? el("span", { class: "story-blurb", text: st.blurb }) : null,
         detail ? el("span", { class: "card-meta" }, [
           el("span", { class: "card-level" + (st.level > s.level ? " above" : ""), text: `Sounds to Level ${st.level}` }),
@@ -218,19 +224,35 @@ const stories = {
       ]),
     ]);
   },
+
+  /* A book is: cover, a Get ready page, the story pages, and a page for
+   * remembering it — the same shape as the school's reading books. */
+  pageKind(story, page) {
+    const last = story.pages.length + 2;
+    if (page <= 0) return "cover";
+    if (page === 1) return "prep";
+    if (page >= last) return "end";
+    return "text";
+  },
   renderReader(host, mode, s, story) {
-    const page = Math.min(s.story.page, story.pages.length);
-    const isCover = page === 0;
-    const pg = isCover ? null : story.pages[page - 1];
-    const total = story.pages.length + 1;
-    const spread = el("div", { class: "spread" }, [
-      el("div", { class: "spread-pic", html: drawScene(isCover ? story.cover : pg.scene) }),
-      el("div", { class: "spread-text" }, isCover
-        ? [el("h2", { class: "story-title", text: story.title }),
-           el("p", { class: "story-band", text: `${bandData(story.band).label} band · sounds up to Level ${story.level}` })]
-        : this.words(pg, s, mode)),
-    ]);
-    host.appendChild(spread);
+    const total = story.pages.length + 3;
+    const page = Math.max(0, Math.min(s.story.page, total - 1));
+    const kind = this.pageKind(story, page);
+    if (kind === "prep") host.appendChild(this.prepPage(story, mode));
+    else if (kind === "end") host.appendChild(this.endPage(story, mode));
+    else {
+      const pg = kind === "cover" ? null : story.pages[page - 2];
+      host.appendChild(el("div", { class: "spread" }, [
+        el("div", { class: "spread-pic", html: drawScene(kind === "cover" ? story.cover : pg.scene) }),
+        el("div", { class: "spread-text" }, kind === "cover"
+          ? [el("h2", { class: "story-title", text: story.title }),
+             el("p", { class: "story-band" }, [
+               el("span", { class: "kind-tag k-" + story.kind, text: KIND_LABEL[story.kind] || "Story" }),
+               el("span", { text: ` ${bandData(story.band).label} band · sounds up to Level ${story.level}` }),
+             ])]
+          : this.words(pg, s, mode)),
+      ]));
+    }
     if (mode === "student") { host.appendChild(el("p", { class: "pagecount", text: `Page ${page + 1} of ${total}` })); return; }
 
     host.appendChild(el("div", { class: "pager" }, [
@@ -249,6 +271,50 @@ const stories = {
     host.appendChild(el("div", { class: "rowbtns" }, [
       el("button", { class: "btn ghost", text: "← All books", onclick: () => saveState({ story: { id: null, page: 0, hl: null } }) }),
     ]));
+  },
+  prepPage(story, mode) {
+    const p = storyPrep(story);
+    const box = el("div", { class: "prep" + (mode === "student" ? " big" : "") }, [
+      el("h2", { class: "prep-title", text: "Get ready to read" }),
+    ]);
+    if (p.focus.length) box.appendChild(el("section", { class: "prep-sec" }, [
+      el("h3", { text: "Sounds in this book" }),
+      el("div", { class: "prep-sounds" }, p.focus.map((g) => el("span", { class: "prep-sound", text: gpcLabel(g) }))),
+    ]));
+    if (p.practise.length) box.appendChild(el("section", { class: "prep-sec" }, [
+      el("h3", { text: "Words to read" }),
+      el("div", { class: "prep-words" }, p.practise.map((w) => el("div", { class: "prep-word" }, [
+        el("span", { class: "prep-word-text", text: w }), soundButtons(w),
+      ]))),
+    ]));
+    if (p.tricky.length) box.appendChild(el("section", { class: "prep-sec" }, [
+      el("h3", { text: "Tricky words" }),
+      el("div", { class: "prep-tricky" }, p.tricky.map((w) => trickyWordEl(w, "prep-tw"))),
+    ]));
+    if (mode !== "student") box.appendChild(el("p", { class: "hint prep-hint",
+      html: "Point to each sound and have him say it. Read each word together, sound by sound, then the whole word. For tricky words, he reads the parts he can; you tell him the <strong>orange</strong> bit." }));
+    return box;
+  },
+  endPage(story, mode) {
+    const facts = story.kind === "nonfiction";
+    const box = el("div", { class: "endpage" }, [
+      el("h2", { class: "prep-title", text: facts ? "What did we find out?" : "Tell the story again" }),
+      el("div", { class: "storymap" + (facts ? " facts" : "") }, story.pages.map((pg, i) =>
+        el("figure", { class: "sm-cell" }, [
+          el("span", { class: "sm-n", text: String(i + 1) }),
+          el("div", { class: "sm-pic", html: drawScene(pg.scene) }),
+        ])
+      )),
+    ]);
+    if (mode === "student") return box;
+    box.appendChild(el("p", { class: "hint", text: facts
+      ? "Point to each picture and ask what he found out from that page. Let him say it in his own words. He doesn't need the exact sentence."
+      : "Have him tell the story from the pictures, in his own words: what happened first, then, and at the end. Help with the order if he gets stuck, not the words." }));
+    if (story.talk && story.talk.length) box.appendChild(el("div", { class: "talk" }, [
+      el("strong", { text: "Talk about it (Read 3)" }),
+      el("ul", {}, story.talk.map((q) => el("li", { text: q }))),
+    ]));
+    return box;
   },
   words(pg, s, mode) {
     const tricky = new Set((pg.tricky || []).map((t) => t.toLowerCase()));

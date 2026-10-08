@@ -18,10 +18,10 @@ const path = require("path");
 const d = (f) => fs.readFileSync(path.join(__dirname, "..", "assets", "data", f), "utf8");
 const S = new Function(
   d("words.js") + "\n" + d("phonics.js") + "\n" + d("stories.js") +
-  "\nreturn {WORDS, UNITS, SOUND_WORDS, WORD_SORTS, WORD_WHEELS, STORIES, BANDS, introLevel, minLevel, minLevelFor, trickyUpTo, trickyIntroLevel, isTrickyAt, wheelWord, TRICKY_PARTS, MAX_LEVEL};"
+  "\nreturn {WORDS, UNITS, SOUND_WORDS, WORD_SORTS, WORD_WHEELS, STORIES, BANDS, STORY_NAMES, storyPrep, introLevel, introLevel, minLevel, minLevelFor, trickyUpTo, trickyIntroLevel, isTrickyAt, wheelWord, TRICKY_PARTS, MAX_LEVEL};"
 )();
 
-const NAMES = new Set(["pip", "sam", "tom", "meg", "ben", "nell", "sid", "mum", "dad", "gran", "joe", "kate", "roy", "dan", "tim", "pam"]);
+const NAMES = S.STORY_NAMES;
 
 let problems = 0;
 const fail = (where, msg) => { problems++; console.log(`FAIL  ${where}\n      ${msg}`); };
@@ -106,13 +106,54 @@ for (const st of S.STORIES) {
     const marked = new Set((p.tricky || []).map((x) => x.toLowerCase()));
     for (const raw of p.text.split(/[\s.,!?“”"]+/)) {
       const w = raw.toLowerCase().replace(/[^a-z’'-]/g, "").replace(/[’']s$/, "").replace(/^[’']|[’']$/g, "");
-      if (w && S.isTrickyAt(w, level) && !marked.has(w)) fail(`story "${st.title}"`, `page "${p.text}" uses tricky word "${w}" without marking it`);
-      if (w && marked.has(w) && S.trickyIntroLevel(w) && !S.isTrickyAt(w, level)) fail(`story "${st.title}"`, `page "${p.text}" marks "${w}" tricky, but it is decodable by Level ${level} — unmark it`);
+      // judged at the book's own level: that's the reader it's written for
+      if (w && S.isTrickyAt(w, st.level) && !marked.has(w)) fail(`story "${st.title}"`, `page "${p.text}" uses tricky word "${w}" without marking it`);
+      if (w && marked.has(w) && S.trickyIntroLevel(w) && !S.isTrickyAt(w, st.level)) fail(`story "${st.title}"`, `page "${p.text}" marks "${w}" tricky, but it is decodable by Level ${st.level} — unmark it`);
     }
   }
   if (need !== st.level) fail(`story "${st.title}"`, `declares level ${st.level} but its words need Level ${need} — set level: ${need}`);
 }
 if (problems === storyIssues) ok(`stories: ${S.STORIES.length} books, every word readable at its band, declared levels correct`);
+
+/* 4b. The shape of each book, matching the school's reading books: a known
+ *     type, focus sounds that are really in it and taught by its level, talk
+ *     questions for the third read, and a real Get ready page. Then the
+ *     library as a whole: a book written for every Activity Level, and
+ *     fiction and non-fiction in every band. */
+let shapeIssues = problems;
+const KINDS = new Set(["story", "nonfiction", "tale"]);
+const ids = new Set();
+for (const st of S.STORIES) {
+  const where = `story "${st.title}"`;
+  if (ids.has(st.id)) fail(where, `duplicate id "${st.id}"`); ids.add(st.id);
+  if (!KINDS.has(st.kind)) fail(where, `kind must be story, nonfiction or tale (got ${st.kind})`);
+  if (!Array.isArray(st.talk) || st.talk.length < 2) fail(where, "needs at least two talk questions for Read 3");
+  if (st.pages.length < 5) fail(where, `only ${st.pages.length} pages`);
+  if (!st.cover || !st.blurb) fail(where, "needs a cover and a blurb");
+  const used = new Set();
+  for (const pg of st.pages) {
+    if (!pg.scene) fail(where, `page "${pg.text}" has no picture`);
+    for (const raw of pg.text.split(/[\s.,!?“”"…]+/)) { const g = S.WORDS[raw.toLowerCase().replace(/[^a-z’'-]/g, "").replace(/[’']s$/, "")]; if (g) g.forEach((x) => used.add(x)); }
+  }
+  // Only Phase 4 (adjacent consonants, no new sounds) may leave focus empty.
+  if (!(st.focus || []).length && !(st.level >= 15 && st.level <= 16)) fail(where, "no focus sounds for the Get ready page");
+  for (const f of st.focus || []) {
+    if (!used.has(f)) fail(where, `focus sound "${f}" isn't used by any word in the book`);
+    else if ((f === "-s" ? 10 : S.introLevel(f) || 99) > st.level) fail(where, `focus sound "${f}" isn't taught until Level ${S.introLevel(f)}`);
+  }
+  const prep = S.storyPrep(st);
+  if (!prep.practise.length) fail(where, "Get ready page has no words to practise (no word uses a focus sound)");
+}
+for (let n = 1; n <= S.MAX_LEVEL; n++) {
+  if (!S.STORIES.some((st) => st.level === n)) fail(`Level ${n}`, "no book is written for this level");
+}
+for (const b of S.BANDS) {
+  const inBand = S.STORIES.filter((st) => st.band === b.id);
+  if (!inBand.some((st) => st.kind === "nonfiction")) fail(`band ${b.label}`, "has no non-fiction");
+  if (!inBand.some((st) => st.kind !== "nonfiction")) fail(`band ${b.label}`, "has no stories");
+}
+const nf = S.STORIES.filter((st) => st.kind === "nonfiction").length;
+if (problems === shapeIssues) ok(`book shape: ${S.STORIES.length} books (${S.STORIES.length - nf} fiction, ${nf} non-fiction), every level 1–${S.MAX_LEVEL} has a book, every band has both kinds`);
 
 /* 5. Tricky-part annotations cover every tricky word and spell it. */
 let tpIssues = problems;

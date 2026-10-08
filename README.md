@@ -17,7 +17,7 @@ school reading volunteer runs:
 | | |
 |---|---|
 | **Flashcards** | Sound tiles and tricky words. Pick a sound, send an example word to his screen, optionally with *sound buttons* under it (the word split into its graphemes), mark ✓ / ✗. Tiles keep their colour and the date, so the record builds up over sessions, and a strip above the tiles tells you what to practise next. Tricky words show their **tricky bit** in orange with a one-line note ("the e says /uh/"). |
-| **Stories** | Thirteen illustrated decodable books — see below. |
+| **Stories** | Forty-one illustrated decodable books, half stories and half non-fiction, from Level 1 up. See below. |
 | **Word Sort** | Numbered words to sort into coloured bins by the sound they contain. He says "number four goes in the red box". |
 | **3 in a Row** | Noughts and crosses on a 3×3 grid of words. Read the word to claim the square. You against him — click once for ✕, twice for ○. |
 | **Mystery Word** | You pick a secret word, he guesses letters. Wrong guesses cost a star. Five stars and it's revealed. Solved or not, it ends with the whole word and its sound buttons — the reading is the point, not the guessing. |
@@ -29,27 +29,54 @@ something he found hard.
 
 ### The stories
 
-Thirteen proper little books, not practice sentences: a title, a cover, a
-cast, and a beginning/middle/end over five pages. Pip the pug turns up in
-two of them, which for a four-year-old is most of the appeal.
+Forty-one little books, built the way the school's Little Wandle reading
+books (Collins Big Cat) are built:
 
-Every book carries an exact **Activity Level** — the highest teaching unit
-any of its words needs — and its card says so. That's checked, not eyeballed:
-every word in every book is in a hand-reviewed grapheme bank
-(`assets/data/words.js`), and `tools/check-content.js` fails if a book uses a
-grapheme, a suffix or an adjacent-consonant pattern taught later than its
-declared level.
+- **They start in week one.** Level 1 has a book using only `s a t p`
+  (*Tap, Tap!*), and every Activity Level from 1 to 21 has at least one
+  book written for it. The earliest are marked *Blending practice*, like
+  the school's own: a handful of words, lots of repetition, one small
+  twist. Before Level 5 there's no "the", and before Level 10 no plurals,
+  so those books are short on purpose.
+- **About half are non-fiction:** facts (*A Duck*, *Rabbits*,
+  *Dolphins*), recounts (*We Went Camping*, *A Day at the Sea*) and
+  instructions (*A Quick Jam Bun*, *Ice Pops*). The school's sets are an
+  even split, and this library is 24 stories to 17 non-fiction.
+- **Retold traditional tales** at the top levels: *The Three Little Pigs*,
+  *The Little Red Hen* and *The Magic Pot*. They're old stories that anyone
+  can retell, written in decodable words, so the wolf becomes a fox and
+  porridge becomes oats.
+- **Every book opens with a Get ready page:** the book's focus sounds, up to
+  six words that use them (shown with sound buttons), and its tricky words
+  with the tricky bit in orange. It's worked out from the book's own
+  text, so it can't drift out of step with it.
+- **Every book ends with a page for remembering it:** all its pictures as a
+  numbered story map to retell from, or "What did we find out?" for
+  non-fiction, plus talk questions on your screen for the third read.
 
-Tricky words are marked in the data and shown in blue on the page, so you
-know at a glance which words to give him the tricky bit of rather than make
-him sound out. The marking is level-aware: *and* is tricky in a Phase 2 book
-(he hasn't met adjacent consonants) but plain in a Phase 4 one, and the
-checker enforces both directions. Click any word on your screen and it
-highlights on his.
+These are **not copies** of the Collins books. Their stories and pictures
+are copyrighted, so everything here is original. What's copied is the
+format. If you want the real books at home, the school can give you a
+login to Collins' ebook library, where the teacher assigns the week's
+book.
 
-Each book has three tick-boxes — **sounding out**, **with expression**,
+Every book carries an exact **Activity Level**: the highest teaching unit
+any of its words needs, shown on its card. That's checked, not eyeballed.
+Every word in every book is in a hand-reviewed grapheme bank
+(`assets/data/words.js`), and `tools/check-content.js` fails if a book uses
+a grapheme, a suffix or an adjacent-consonant pattern taught later than its
+declared level, if its focus sounds aren't really in it, or if it's
+missing talk questions.
+
+Tricky words are marked in the data and shown in blue on the page. The
+marking is level-aware, judged at the book's own level: *and* is tricky in
+a Phase 2 book (he hasn't met adjacent consonants yet) but plain in a
+Phase 4 one, and the checker enforces both directions. Click any word on
+your screen and it highlights on his.
+
+Each book also has three tick-boxes — **sounding out**, **with expression**,
 **talked about it** — because the scheme's model is the same book read
-three times over a week, and one "mark as read" flag doesn't record that.
+three times over a week.
 
 Pictures are composed from an original SVG kit (`assets/data/art.js`) — one
 shared cast and prop set, so characters stay recognisable page to page.
@@ -288,8 +315,8 @@ assets/activities.js                all seven activities (coach + student modes)
 assets/coach.js, play.js            the two page shells
 assets/data/phonics.js              the 21 units, tricky-word parts, sound examples, sorts, wheels
 assets/data/words.js                the grapheme bank: every word the app can show, with its sounds
-assets/data/stories.js              the thirteen books
-assets/data/art.js                  SVG scene kit for the illustrations
+assets/data/stories.js              the forty-one books, plus the Get ready helper
+assets/data/art.js                  SVG scene kit for the illustrations (15 backgrounds, ~90 items)
 assets/style.css                    everything visual
 assets/fonts/                       Andika (SIL OFL)
 server/server.js                    static server + sync (http + ws, nothing else)
