@@ -83,6 +83,18 @@ const BACKGROUNDS = {
       <rect x="100" y="150" width="8" height="55" fill="#8a6a45"/><rect x="10" y="160" width="105" height="7" fill="#a3835c"/>
       <rect x="10" y="185" width="105" height="7" fill="#a3835c"/>
     </g>`,
+  sky: () => `
+    <rect width="400" height="300" fill="${PAL.sky}"/>
+    <path d="M0 215 Q 100 185 200 212 T 400 205 L400 300 L0 300Z" fill="${PAL.grass}"/>
+    <path d="M0 240 Q 120 225 400 245 L400 300 L0 300Z" fill="${PAL.grassDark}" opacity=".55"/>`,
+  harbour: () => `
+    <rect width="400" height="300" fill="${PAL.sky}"/>
+    <circle cx="60" cy="50" r="24" fill="${PAL.yellow}"/>
+    <rect y="150" width="400" height="150" fill="${PAL.water}"/>
+    <path d="M0 158 q 25 -8 50 0 t 50 0 t 50 0 t 50 0 t 50 0 t 50 0 t 50 0 t 50 0" fill="none" stroke="#ffffff" stroke-width="3" opacity=".6"/>
+    <rect x="0" y="186" width="130" height="14" fill="#9a7a52"/>
+    <g fill="#7a5b3c">${[10, 50, 90, 122].map((x) => `<rect x="${x}" y="196" width="8" height="70"/>`).join("")}</g>
+    <g stroke="#7a5b3c" stroke-width="2">${[20, 40, 60, 80, 100, 120].map((x) => `<path d="M${x} 186 v14"/>`).join("")}</g>`,
   farm: () => `
     <rect width="400" height="300" fill="${PAL.sky}"/>
     <circle cx="70" cy="50" r="24" fill="${PAL.yellow}"/>
@@ -365,6 +377,13 @@ const ITEMS = {
   zzz: () => `<g fill="#6b5aa8" font-family="sans-serif" font-weight="700"><text x="0" y="0" font-size="22">z</text><text x="14" y="-14" font-size="16">z</text><text x="25" y="-26" font-size="12">z</text></g>`,
   heart: () => `<path d="M0 12 q -22 -14 -18 -26 q 6 -12 18 -2 q 12 -10 18 2 q 4 12 -18 26Z" fill="#e85d75"/>`,
   kit: () => `<rect x="-26" y="-16" width="52" height="34" rx="5" fill="#e9f3f8" stroke="#b9c6d1" stroke-width="3"/><path d="M-10 -16 v-6 h20 v6" stroke="#b9c6d1" stroke-width="3" fill="none"/><path d="M-6 0 h12 M0 -6 v12" stroke="${PAL.red}" stroke-width="4"/>`,
+  ship: (o = {}) => `<path d="M-80 0 h160 l -22 30 h-116Z" fill="${o.c || "#c4643f"}"/><rect x="-60" y="-26" width="70" height="26" fill="#f3e7d6"/><rect x="-52" y="-20" width="12" height="10" fill="${PAL.sky}"/><rect x="-34" y="-20" width="12" height="10" fill="${PAL.sky}"/><rect x="-16" y="-20" width="12" height="10" fill="${PAL.sky}"/><rect x="24" y="-44" width="14" height="44" fill="#3f4753"/><rect x="24" y="-44" width="14" height="8" fill="${PAL.red}"/><path d="M-80 0 h160" stroke="#ffffff" stroke-width="3"/>`,
+  bell: () => `<path d="M-16 10 q 0 -30 16 -30 q 16 0 16 30Z" fill="#e2b34a"/><rect x="-20" y="8" width="40" height="6" rx="3" fill="#c9952e"/><circle cx="0" cy="17" r="4" fill="#c9952e"/><rect x="-2" y="-26" width="4" height="7" fill="#c9952e"/>`,
+  cloud: (o = {}) => `<g fill="${o.c || "#ffffff"}"><ellipse cx="0" cy="0" rx="46" ry="20"/><circle cx="-18" cy="-10" r="20"/><circle cx="12" cy="-16" r="24"/></g>`,
+  bird: (o = {}) => `<ellipse cx="0" cy="0" rx="18" ry="13" fill="${o.c || "#5b9bd5"}"/><path d="M-4 -2 q -16 -18 -26 -6 q 12 4 18 14Z" fill="${o.c2 || "#3f78b0"}"/><circle cx="14" cy="-10" r="10" fill="${o.c || "#5b9bd5"}"/><path d="M23 -11 l 9 3 l -9 3Z" fill="${PAL.orange}"/><circle cx="16" cy="-12" r="2" fill="${PAL.black}"/><path d="M-18 2 l -12 6 l 12 2Z" fill="${o.c2 || "#3f78b0"}"/><path d="M-2 13 v8 M6 13 v8" stroke="${PAL.orange}" stroke-width="2.5"/>`,
+  helmet: (o = {}) => `<path d="M-24 6 q 0 -30 24 -30 q 24 0 24 30Z" fill="${o.c || PAL.red}"/><path d="M-24 6 h48" stroke="#8a2f29" stroke-width="4"/><g stroke="#ffffff" stroke-width="3" opacity=".6"><path d="M-8 -20 v14"/><path d="M8 -20 v14"/></g>`,
+  rat: () => `<ellipse cx="0" cy="4" rx="24" ry="13" fill="#9aa0a8"/><circle cx="22" cy="-2" r="10" fill="#9aa0a8"/><circle cx="18" cy="-12" r="6" fill="#c9cdd2"/><path d="M30 0 l 6 1" stroke="#d98a9a" stroke-width="4" stroke-linecap="round"/><circle cx="25" cy="-4" r="1.8" fill="${PAL.black}"/><path d="M-24 6 q -20 2 -26 -10" stroke="#d98a9a" stroke-width="2.5" fill="none"/>`,
+  flag: (o = {}) => `<rect x="-2" y="-40" width="4" height="60" fill="#5f6a79"/><path d="M2 -40 h30 l -8 10 l 8 10 h-30Z" fill="${o.c || PAL.red}"/>`,
   bandage: () => `<rect x="-14" y="-5" width="28" height="10" rx="4" fill="#f4d3b0"/><g fill="#d6ad86"><circle cx="-4" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/></g>`,
 };
 

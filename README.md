@@ -17,7 +17,7 @@ school reading volunteer runs:
 | | |
 |---|---|
 | **Flashcards** | Sound tiles and tricky words. Pick a sound, send an example word to his screen, optionally with *sound buttons* under it (the word split into its graphemes), mark ✓ / ✗. Tiles keep their colour and the date, so the record builds up over sessions, and a strip above the tiles tells you what to practise next. Tricky words show their **tricky bit** in orange with a one-line note ("the e says /uh/"). |
-| **Stories** | Forty-one illustrated decodable books, half stories and half non-fiction, from Level 1 up. See below. |
+| **Stories** | Forty-eight illustrated decodable books, half stories and half non-fiction, from Level 1 up. See below. |
 | **Word Sort** | Numbered words to sort into coloured bins by the sound they contain. He says "number four goes in the red box". |
 | **3 in a Row** | Noughts and crosses on a 3×3 grid of words. Read the word to claim the square. You against him — click once for ✕, twice for ○. |
 | **Mystery Word** | You pick a secret word, he guesses letters. Wrong guesses cost a star. Five stars and it's revealed. Solved or not, it ends with the whole word and its sound buttons — the reading is the point, not the guessing. |
@@ -29,7 +29,7 @@ something he found hard.
 
 ### The stories
 
-Forty-one little books, built the way the school's Little Wandle reading
+Forty-eight little books, built the way the school's Little Wandle reading
 books (Collins Big Cat) are built:
 
 - **They start in week one.** Level 1 has a book using only `s a t p`
@@ -38,10 +38,11 @@ books (Collins Big Cat) are built:
   the school's own: a handful of words, lots of repetition, one small
   twist. Before Level 5 there's no "the", and before Level 10 no plurals,
   so those books are short on purpose.
-- **About half are non-fiction:** facts (*A Duck*, *Rabbits*,
+- **Half are non-fiction:** facts (*A Duck*, *Rabbits*, *Pets*,
   *Dolphins*), recounts (*We Went Camping*, *A Day at the Sea*) and
-  instructions (*A Quick Jam Bun*, *Ice Pops*). The school's sets are an
-  even split, and this library is 24 stories to 17 non-fiction.
+  instructions (*A Quick Jam Bun*, *Ice Pops*, *Ride a Bike*). It's 24
+  stories and 24 non-fiction, as in the school's sets, and no
+  Story Level band is more than one book off an even split.
 - **Retold traditional tales** at the top levels: *The Three Little Pigs*,
   *The Little Red Hen* and *The Magic Pot*. They're old stories that anyone
   can retell, written in decodable words, so the wolf becomes a fox and
@@ -315,7 +316,7 @@ assets/activities.js                all seven activities (coach + student modes)
 assets/coach.js, play.js            the two page shells
 assets/data/phonics.js              the 21 units, tricky-word parts, sound examples, sorts, wheels
 assets/data/words.js                the grapheme bank: every word the app can show, with its sounds
-assets/data/stories.js              the forty-one books, plus the Get ready helper
+assets/data/stories.js              the forty-eight books, plus the Get ready helper
 assets/data/art.js                  SVG scene kit for the illustrations (15 backgrounds, ~90 items)
 assets/style.css                    everything visual
 assets/fonts/                       Andika (SIL OFL)
