@@ -20,6 +20,7 @@
  *   client → {type:"update", liveState?, progress?}   whichever slice changed
  *   server → {type:"sync", liveState, progress}        on connect and on every change
  *   server → {type:"presence", coaches, students}      whenever who's connected changes
+ *   server → {type:"version", version}                 on connect (self-updating container only)
  *
  * Each slice carries its own updatedAt; the server keeps whichever is
  * newer, so a stale snapshot from one screen cannot overwrite fresher work
@@ -38,6 +39,11 @@ const { WebSocketServer } = require("ws");
 const PORT = Number(process.env.PORT || 8000);
 const PUBLIC_DIR = path.resolve(process.env.PUBLIC_DIR || "/app/public");
 const STATE_FILE = path.resolve(process.env.STATE_FILE || "/app/data/state.json");
+const APP_VERSION = /^[0-9a-f]{7}$/.test(process.env.APP_VERSION || "") ? process.env.APP_VERSION : null;
+const REPO = process.env.REPO || "SunithM87/Phonics";
+const BRANCH = process.env.BRANCH || "claude/gifted-feynman-6q1506";
+const update = { latest: null, pending: false, error: null };
+let lastActivity = Date.now();
 
 const DEFAULT_DOC = {
   liveState: { level: 1, band: "pink", activity: "flashcards", tab: "sounds", showDirections: true, updatedAt: 0 },
@@ -125,7 +131,7 @@ const server = http.createServer((req, res) => {
     }
     if (req.url === "/api/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ ok: true, version: process.env.APP_VERSION || null, ...presence() }));
+      return res.end(JSON.stringify({ ok: true, version: APP_VERSION, latest: update.latest, updatePending: update.pending, ...(update.error ? { updateNote: update.error } : {}), ...presence() }));
     }
     serveStatic(req, res);
   } catch (e) {
@@ -162,6 +168,7 @@ function accept(slice, incoming) {
 
 wss.on("connection", (ws) => {
   ws.role = null;
+  if (APP_VERSION) ws.send(JSON.stringify({ type: "version", version: APP_VERSION }));
   ws.send(JSON.stringify({ type: "sync", ...doc }));
   ws.send(JSON.stringify({ type: "presence", ...presence() }));
 
@@ -178,7 +185,7 @@ wss.on("connection", (ws) => {
       let changed = false;
       if (accept("liveState", msg.liveState)) changed = true;
       if (accept("progress", msg.progress)) changed = true;
-      if (changed) { persist(); broadcastSync(); }
+      if (changed) { lastActivity = Date.now(); persist(); broadcastSync(); }
       else ws.send(JSON.stringify({ type: "sync", ...doc })); // they were stale — hand them the current truth
     } catch (e) {
       // a garbled message from one client is not everyone's problem
@@ -190,6 +197,75 @@ wss.on("connection", (ws) => {
 });
 
 process.on("uncaughtException", (e) => console.error("Uncaught:", e && e.stack || e));
+
+/* Write the document now, not after the usual short delay: for shutdowns. */
+function saveNow() {
+  clearTimeout(saveTimer);
+  try {
+    fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
+    const tmp = STATE_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(doc, null, 2));
+    fs.renameSync(tmp, STATE_FILE);
+  } catch (e) { console.error("Failed to save state:", e.message); }
+}
+// docker stop sends SIGTERM: don't lose a change still waiting to be written
+process.on("SIGTERM", () => { saveNow(); process.exit(0); });
+
+/* ---------------- Updating itself ----------------
+ * In the NAS container (deploy/container-start.sh) the app is downloaded
+ * from GitHub every time it starts, so a restart is an update. Every so
+ * often this asks GitHub for the branch's latest commit; when it's newer
+ * than what's running, the server exits once no session is going on (no
+ * screens connected, or nothing has changed for a while). Docker's restart
+ * policy brings it straight back on the new version, and any open screens
+ * reload themselves when they reconnect and see a different version.
+ *
+ * Off unless APP_VERSION is set, which only container-start.sh does, so a
+ * server run by hand never restarts itself. AUTO_UPDATE=off disables it.
+ * A version that was tried and didn't take (the download failed, say) is
+ * remembered and not retried in a loop. */
+function maybeStartUpdater() {
+  if (!APP_VERSION || process.env.AUTO_UPDATE === "off") return;
+  const checkMs = Number(process.env.UPDATE_CHECK_MS || 15 * 60 * 1000);
+  const idleMs = Number(process.env.UPDATE_IDLE_MS || 30 * 60 * 1000);
+  const attemptFile = path.join(path.dirname(STATE_FILE), ".update-attempt");
+
+  async function check() {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${REPO}/commits/${encodeURIComponent(BRANCH)}`,
+        { headers: { Accept: "application/vnd.github.sha", "User-Agent": "reading-den" } });
+      if (!r.ok) throw new Error(`GitHub answered ${r.status}`);
+      const sha = (await r.text()).trim().slice(0, 7);
+      if (!/^[0-9a-f]{7}$/.test(sha)) throw new Error("GitHub gave an odd answer");
+      update.latest = sha;
+      update.error = null;
+      if (sha === APP_VERSION) { update.pending = false; return; }
+      let tried = "";
+      try { tried = fs.readFileSync(attemptFile, "utf8").trim(); } catch (e) {}
+      if (tried === sha) {
+        update.pending = false;
+        update.error = `${sha} was tried and didn't take; restart the container to try again`;
+        return;
+      }
+      if (!update.pending) console.log(`[update] ${sha} is out (running ${APP_VERSION}); will restart when no session is going on`);
+      update.pending = true;
+    } catch (e) {
+      update.error = `couldn't check for updates: ${e.message}`;
+    }
+  }
+  function maybeRestart() {
+    if (!update.pending) return;
+    if (wss.clients.size > 0 && Date.now() - lastActivity < idleMs) return;
+    console.log(`[update] restarting to update ${APP_VERSION} → ${update.latest}`);
+    try { fs.writeFileSync(attemptFile, update.latest + "\n"); } catch (e) {}
+    saveNow();
+    process.exit(0);
+  }
+  setTimeout(check, Math.min(60 * 1000, checkMs));
+  setInterval(check, checkMs);
+  setInterval(maybeRestart, Math.min(60 * 1000, checkMs));
+}
+maybeStartUpdater();
 
 server.listen(PORT, () => {
   console.log(`The Reading Den server listening on :${PORT}`);

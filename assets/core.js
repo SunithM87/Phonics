@@ -124,6 +124,7 @@ let ws = null;
 let connected = false;
 let backoff = 1000;
 let presence = { coaches: 0, students: 0 };
+let serverVersion = null;
 let presenceKnown = false; // false until the server has told us who's connected
 const dirty = { liveState: false, progress: false };
 
@@ -177,6 +178,14 @@ function connect() {
   ws.onmessage = (ev) => {
     let m;
     try { m = JSON.parse(ev.data); } catch (e) { return; }
+    // After the server updates itself, open screens reconnect to a new
+    // version: reload so they run the new code too. State is saved, so the
+    // reload lands exactly where it was.
+    if (m.type === "version") {
+      if (m.version && serverVersion && m.version !== serverVersion) window.location.reload();
+      else if (m.version) serverVersion = m.version;
+      return;
+    }
     if (m.type === "presence") {
       presence = { coaches: m.coaches || 0, students: m.students || 0 };
       presenceKnown = true;

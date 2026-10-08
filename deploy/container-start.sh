@@ -3,7 +3,8 @@
 # It downloads the latest version of the app from GitHub and then serves
 # it, so restarting the container is the update: from the UGREEN Docker
 # app, from anywhere. If GitHub can't be reached, it serves the last
-# version it downloaded.
+# version it downloaded. While it runs, the server also checks for newer
+# versions and restarts itself to pick them up (see server.js).
 #
 # Everything lives in the data folder (the one bind mount):
 #   state.json      his progress, never touched here
@@ -62,6 +63,7 @@ if ! update; then
 fi
 rm -rf "$WORK"
 
+export REPO BRANCH   # the server checks the same branch for newer versions
 export PUBLIC_DIR="$APP"
 export STATE_FILE="${STATE_FILE:-$DATA/state.json}"
 export APP_VERSION="$(cat "$APP/.version" 2>/dev/null || echo unknown)"

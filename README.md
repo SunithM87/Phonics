@@ -163,13 +163,28 @@ its own copy of the file. The port is the other thing you might change.
 
 ## Updating
 
-**Restart the container.** In the UGREEN Docker app: *Containers →
-reading-den → Restart* (or stop and start the project). As it starts it
-downloads the latest version from GitHub. Give it about ten seconds, then
-refresh both screens. His progress is never touched.
+**It updates itself.** Every 15 minutes the server asks GitHub whether
+there's a newer version. When there is, it waits until no session is going
+on (no screens connected, or nothing changed for 30 minutes), then
+restarts. The container downloads the new version as it starts, and any
+screens left open reload themselves onto it. They come back on the same
+page, since everything is saved. His progress is never touched.
+
+So after a change is pushed, it's live within about 15 minutes of the next
+quiet moment. To get it **straight away**, restart the container yourself
+in the UGREEN Docker app: *Containers → reading-den → Restart*. Use
+**Restart**, not re-deploy. Re-deploying an unchanged project doesn't
+restart the container, so nothing gets downloaded.
+
+If an update fails to download (GitHub unreachable, say), it keeps serving
+the version it has and doesn't keep retrying that same version. The health
+page says so, and a manual restart tries again. Set `AUTO_UPDATE=off` in
+the compose file's `environment:` to switch self-updating off.
 
 To check which version is running, open `http://<nas-ip>:8000/api/health`.
-The `version` field is the commit it's serving.
+`version` is the commit it's serving, `latest` is the newest one on GitHub
+when it last checked, and `updatePending` means it's waiting for a quiet
+moment to switch over.
 
 From a terminal, this does the same restart and waits until the new
 version answers:
